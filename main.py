@@ -67,5 +67,5 @@ if __name__ == "__main__":
     app = SampleApp()
     app.mainloop()
     #cd D:\RDMS\RDBMS_Project\
-    #pyinstaller --onefile --noconsole main.py
+    #pyinstaller --onefile --noconsole D:\RDMS\RDBMS_Project\main.py
 
