@@ -1,19 +1,26 @@
 # pip install folium
 # pip install geocoder
 # pip install mysql-connector-python
+#pip install tkintermapview
+import requests
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog
 import webbrowser
 import folium
 import os
 import geocoder
 import mysql.connector
+from translate import LibreTranslate
+import pandas as pd
+from tkintermapview import TkinterMapView
+import numpy as np
 
-class SampleApp(tk.Tk):
+class NaverApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
-        
-        self.title("Multi-Page Application")
+        self.geometry("1000x800")
+        self.title("NaverFood")
+        self.iconbitmap("RDBMS_Project/naverfood.png")
         
         # Create a container frame to hold the pages
         container = ttk.Frame(self)
@@ -23,27 +30,14 @@ class SampleApp(tk.Tk):
         self.notebook = ttk.Notebook(container)
         self.notebook.pack(fill="both", expand=True)
         
-        # Mock database with sample search results categorized into three options
-        self.database = {
-            "Option 1": [
-                {"name": "Result 1A", "link": "https://example.com/result1A", "lat": 37.7749, "lon": -122.4194},
-                {"name": "Result 1B", "link": "https://example.com/result1B", "lat": 34.0522, "lon": -118.2437},
-            ],
-            "Option 2": [
-                {"name": "Result 2A", "link": "https://example.com/result2A", "lat": 40.7128, "lon": -74.0060},
-                {"name": "Result 2B", "link": "https://example.com/result2B", "lat": 41.8781, "lon": -87.6298},
-            ],
-            "Option 3": [
-                {"name": "Result 3A", "link": "https://example.com/result3A", "lat": 51.5074, "lon": -0.1278},
-                {"name": "Result 3B", "link": "https://example.com/result3B", "lat": 48.8566, "lon": 2.3522},
-            ]
-        }
-                
-        # Create a dictionary to hold pages
+        # Load the CSV data into a pandas DataFrame
+        self.database = pd.read_csv('RDBMS_Project/sample_data.csv')
+
+        # Create a dictionary to hold pages 
         self.pages = {}
         
         # Create and add pages to the dictionary
-        for PageClass in (MainPage, SearchPage, Result):
+        for PageClass in (MainPage, SearchResult, Result):
             page_name = PageClass.__name__
             page = PageClass(parent=self.notebook, controller=self)
             self.pages[page_name] = page
@@ -63,21 +57,61 @@ class MainPage(tk.Frame):
         self.title_label = tk.Label(self, text="Main Page: Title")
         self.title_label.pack(pady=10)
         
+
+        # Create a TkinterMapView widget
+        MAP_WIDTH = 500  # Adjusted width
+        MAP_HEIGHT = 400  # Adjusted height
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+        database_path = os.path.join(script_directory, "offline_tiles_hye.db")
+        self.map_widget = TkinterMapView(width=MAP_WIDTH, height=MAP_HEIGHT, corner_radius=1,database_path=database_path, max_zoom=15)
+        self.map_widget.set_address("Hyehwa Station, Seoul, South Korea")
+        self.map_widget.pack(fill="both", expand=True, padx=10, pady=10)
+        # Multiple-choice radio buttons for filtering
+        self.filter_label = tk.Label(self, text="Filter by Category:")
+        self.filter_label.pack(pady=5)
+        
+
         # Search input
-        self.search_label = tk.Label(self, text="Search:")
+        self.search_label = tk.Label(self, text="Enter Lat Lon")
         self.search_label.pack(pady=5)
         
         self.search_entry = tk.Entry(self)
         self.search_entry.pack(pady=5)
+
+
+        # Create a new frame for the category radio buttons
+        category_frame = tk.Frame(self)
+        category_frame.pack(pady=10)
+        # Initialize the selected_category variable
+        self.selected_category = tk.StringVar()
+        # Fetch unique categories from the database
+        if 'Category' in self.controller.database.columns:
+            categories = self.controller.database['Category'].unique().tolist()
+        else:
+            categories = ["None"]
+
+        # Define the number of categories per row
+        categories_per_row = 5
+        for index, category in enumerate(categories):
+            radiobutton = tk.Radiobutton(category_frame, text=category, variable=self.selected_category, value=category)
+            row_idx = index // categories_per_row
+            col_idx = index % categories_per_row
+            radiobutton.grid(row=row_idx, column=col_idx, sticky="w", padx=5, pady=5)
         
-        # Multiple-choice radio buttons for filtering with a default "None" option
-        self.filter_label = tk.Label(self, text="Filter by Category:")
-        self.filter_label.pack(pady=5)
         
-        self.selected_category = tk.StringVar(value="None")  # Default is "None"
-        categories = ["None", "Category A", "Category B", "Category C"]
-        for category in categories:
-            radiobutton = tk.Radiobutton(self, text=category, variable=self.selected_category, value=category)
+        # Radio buttons for English and Kids options
+        self.english_label = tk.Label(self, text="English:")
+        self.english_label.pack(pady=5)
+        self.english_option = tk.StringVar(value="No")
+        for option in ["Yes", "No"]:
+            radiobutton = tk.Radiobutton(self, text=option, variable=self.english_option, value=option)
+            radiobutton.pack(anchor="w")
+
+        self.kids_label = tk.Label(self, text="Kids:")
+        self.kids_label.pack(pady=5)
+        self.kids_option = tk.StringVar(value="No")
+        for option in ["Yes", "No"]:
+            radiobutton = tk.Radiobutton(self, text=option, variable=self.kids_option, value=option)
             radiobutton.pack(anchor="w")
         
         # Search button
@@ -86,65 +120,67 @@ class MainPage(tk.Frame):
         
         self.exit_button = tk.Button(self, text="Exit", command=self.controller.quit)
         self.exit_button.pack()
-    
-    def download_and_prepare_data(self):
-        # Download data (this could be from a web source, file, API, etc.)
-        # For demonstration, let's assume we're fetching data from an API using the requests library
-        # import requests
-        # response = requests.get('YOUR_API_ENDPOINT')
-        # data = response.json()
-        
-        # Prepare data (cleaning, transformation, etc.)
-        # For demonstration:
-        # cleaned_data = [clean(item) for item in data]  # Assuming a 'clean' function exists
-        
-        # Save to MySQL
-        # import mysql.connector
-        # connection = mysql.connector.connect(
-        #     host="YOUR_HOST",
-        #     user="YOUR_USER",
-        #     password="YOUR_PASSWORD",
-        #     database="YOUR_DATABASE"
-        # )
-        # cursor = connection.cursor()
-        # for item in cleaned_data:
-        #     cursor.execute("YOUR_INSERT_STATEMENT", item)
-        # connection.commit()
-        # cursor.close()
-        # connection.close()
-        
-        pass  # Remove this line when uncommenting the above code
+
+    def load_csv_to_db(self):
+        '''
+        # Load the CSV file into a pandas DataFrame
+        data = self.database
+
+        # Connect to MySQL
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="your_password"
+        )
+        cursor = conn.cursor()
+
+        # Insert the data into the MySQL table (you'll need to adjust the placeholders and columns accordingly)
+        for index, row in data.iterrows():
+            cursor.execute("INSERT INTO your_table_name (column1, column2, ...) VALUES (%s, %s, ...)", 
+                           (row['column1'], row['column2'], ...))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        '''
     
     def perform_search(self):
-        query = self.search_entry.get() or None
+        # Fetch the clicked location from the map
+        input_text = self.search_entry.get()
+        if not input_text:
+            print("Please enter a valid location.")
+            return
+        
+        try:
+            self.lat, self.lon = input_text.split()
+            print(f"Selected location: Lat: {self.lat}, Lon: {self.lon}")
+        except ValueError:
+            print("Invalid input format. Please enter Lat and Lon separated by a space.")
+            return
+
         filter_category = self.selected_category.get() if self.selected_category.get() != "None" else None
         
-        # Switch to the SearchPage
-        self.controller.show_page("SearchPage")
+        # Pass the English and Kids options to the SearchResult for filtering
+        english = self.english_option.get()
+        kids = self.kids_option.get()
         
-        # Pass the search criteria to the SearchPage and perform the search there
-        search_page = self.controller.pages["SearchPage"]
-        search_page.perform_search(query, filter_category)  
+        
+        
+        # Switch to the SearchResult
+        self.controller.show_page("SearchResult")
+        
+        # Pass the search criteria to the SearchResult and perform the search there
+        search_page = self.controller.pages["SearchResult"]
+        search_page.perform_search(self.lat,self.lon,filter_category, english, kids)
     
-    def fetch_data_from_db(self, query=None, category=None):
-        # Mock function simulating fetching data from the database based on search criteria.
-        # In a real scenario, this function would interact with your database.
-        mock_data = [
-            {"name": "Item 1", "category": "Category A"},
-            {"name": "Item 2", "category": "Category B"},
-            {"name": "Item 3", "category": "Category C"}
-        ]
-        if query:
-            mock_data = [item for item in mock_data if query.lower() in item["name"].lower()]
-        if category:
-            mock_data = [item for item in mock_data if category == item["category"]]
-        return mock_data
-
-class SearchPage(tk.Frame):
+class SearchResult(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        
+
+        self.no_results_label = tk.Label(self, text="", fg="red")
+        self.no_results_label.pack()
+
         self.search_label = tk.Label(self, text="Search Results:")
         self.search_label.pack(pady=10)
         
@@ -156,32 +192,60 @@ class SearchPage(tk.Frame):
         
         self.results_listbox.config(yscrollcommand=self.scrollbar.set)
         self.results_listbox.bind("<Double-Button-1>", self.select_result)
-        
-        self.exit_button = tk.Button(self, text="Exit", command=self.controller.quit)
-        self.exit_button.pack()
 
-    def perform_search(self, query, category):
-        # Here, fetch the results based on the search criteria and display them in the Listbox.
-        # For demonstration, we're using mock data.
-        mock_results = ["Result 1", "Result 2", "Result 3", "Result 4"]  # Replace with actual results
-        for result in mock_results:
-            self.results_listbox.insert(tk.END, result)
+    def perform_search(self, lat, lon, category, english, kids):
+        # Filter the results based on the search criteria from the database (pandas DataFrame)
+        self.filtered_data = self.controller.database
+
+        if category and category != "None":
+            self.filtered_data = self.filtered_data[self.filtered_data['Category'] == category]
+
+        # Additional filters based on English and Kids options
+        if english == "Yes":
+            self.filtered_data = self.filtered_data[self.filtered_data['English'] == 'Yes']
+        if kids == "Yes":
+            self.filtered_data = self.filtered_data[self.filtered_data['Kids'] == 'Yes']
+
+        # Clear the previous results in the Listbox
+        self.results_listbox.delete(0, tk.END)
+
+        if not self.filtered_data.empty:
+            # Calculate distances between the clicked location and each restaurant
+            # (You may need to adjust this part to access the correct database)
+            self.filtered_data['Distance'] = np.sqrt(
+                (self.filtered_data['Lat'] - float(lat))**2 +
+                (self.filtered_data['Lon'] - float(lon))**2
+            )
+
+            # Sort the filtered data by distance
+            sorted_data = self.filtered_data.sort_values(by='Distance').head(10)
+
+            # Display the sorted results in the Listbox
+            for _, row in sorted_data.iterrows():
+                display_text = f"{row['Name']} (Distance: {row['Distance']}, ReviewPoint: {row['Review_Point']},Review: {row['Review']})"
+                self.results_listbox.insert(tk.END, display_text)
+        else:
+            # Show a message if there are no matching results
+            self.no_results_label.config(text="No matching results found.")
 
     def select_result(self, event):
-        # Get the selected result
-        selected_result = self.results_listbox.get(self.results_listbox.curselection())
+        # Get the selected result's index
+        index = self.results_listbox.curselection()[0]
+        
+        # Fetch the full record from the filtered_data DataFrame based on the index
+        selected_record = self.filtered_data.iloc[index]
         
         # Switch to the Result and display the details of the selected result
         self.controller.show_page("Result")
-        Result = self.controller.pages["Result"]
-        Result.display_details(selected_result)
+        result_page = self.controller.pages["Result"]
+        result_page.display_details(selected_record)
 
 class Result(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         
-        self.result_label = tk.Label(self, text="Result Page: Chosen Result")
+        self.result_label = tk.Label(self, text="Chosen Result")
         self.result_label.pack(pady=10)
         
         # Button to copy the link to clipboard
@@ -215,25 +279,45 @@ class Result(tk.Frame):
         self.exit_button = tk.Button(self, text="Exit", command=self.controller.quit)
         self.exit_button.pack()
 
-    def display_details(self, result):
-        # Display the details of the selected result and show its location on the map.
-        # For demonstration, we're just printing the result. You can enhance this to fetch more details
-        # and display them in the GUI, as well as update the map location.
-        print(f"Displaying details for: {result}")
-        # Here, update the GUI widgets and map to reflect the details of the selected result.
+    def translate_to_english(self, text):
+        translator = LibreTranslate(api_url="https://api_url", api_key="YOUR_API_KEY")
+        return translator.translate(text, source_lang="auto", target_lang="en")
 
+    def display_details(self, record):
+        # Display the details of the selected result and show its location on the map.
+        # Update the result label with the restaurant's name
+        self.result_label.config(text=f"Result Page: {record['Name']}")
+        
+        # If English was selected, translate the review
+        review_text = record['Review']
+        if self.controller.pages["MainPage"].english_option.get() == "Yes":
+            review_text = self.translate_to_english(review_text)
+        
+        # Display the (possibly translated) review (you can adjust this to show it in a GUI element)
+        print(f"Review: {review_text}")
+        
+        # Update the map marker to the location of the selected restaurant
+        self.result_marker.location = [record['Lat'], record['Lon']]
+        self.result_marker.popup = folium.Popup(record['Name'])
+        
+        # Center the map around the selected restaurant's location
+        self.map.location = [record['Lat'], record['Lon']]
+        
+        # Refresh the map by saving it again
+        self.map.save(self.map_filepath)
+        
     def copy_to_clipboard(self):
         # Here, for demonstration purposes, I'm copying the first link from "Option 1" in the database. 
         # You can modify this based on your requirements.
-        link = self.controller.database["Option 1"][0]["link"]
+        link = self.controller.database.loc[0, "Name"]  # Using pandas DataFrame for example
         self.clipboard_clear()
         self.clipboard_append(link)
         self.update()  # This is necessary to finalize the clipboard changes
 
-
 if __name__ == "__main__":
-    app = SampleApp()
+    app = NaverApp()
     app.mainloop()
+
 
     #cd D:\RDMS\RDBMS_Project\
     #pyinstaller --onefile --noconsole D:\RDMS\RDBMS_Project\main.py
