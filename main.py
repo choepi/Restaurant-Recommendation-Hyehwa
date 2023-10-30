@@ -1,6 +1,7 @@
 # pip install folium
 # pip install geocoder
 # pip install mysql-connector-python
+#pip install tkintermapview
 import requests
 import tkinter as tk
 from tkinter import ttk, filedialog
@@ -11,10 +12,13 @@ import geocoder
 import mysql.connector
 from translate import LibreTranslate
 import pandas as pd
+from tkintermapview import TkinterMapView
+import numpy as np
 
 class NaverApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
+        self.geometry("1000x800")
         self.title("NaverFood")
         self.iconbitmap("RDBMS_Project/naverfood.png")
         
@@ -27,8 +31,8 @@ class NaverApp(tk.Tk):
         self.notebook.pack(fill="both", expand=True)
         
         # Load the CSV data into a pandas DataFrame
-        self.database = pd.read_csv('sample_data.csv')
-        print(self.database)
+        self.database = pd.read_csv('RDBMS_Project/sample_data.csv')
+
         # Create a dictionary to hold pages 
         self.pages = {}
         
@@ -53,28 +57,47 @@ class MainPage(tk.Frame):
         self.title_label = tk.Label(self, text="Main Page: Title")
         self.title_label.pack(pady=10)
         
+
+        # Create a TkinterMapView widget
+        MAP_WIDTH = 500  # Adjusted width
+        MAP_HEIGHT = 400  # Adjusted height
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+        database_path = os.path.join(script_directory, "offline_tiles_hye.db")
+        self.map_widget = TkinterMapView(width=MAP_WIDTH, height=MAP_HEIGHT, corner_radius=1,database_path=database_path, max_zoom=15)
+        self.map_widget.set_address("Hyehwa Station, Seoul, South Korea")
+        self.map_widget.pack(fill="both", expand=True, padx=10, pady=10)
+        # Multiple-choice radio buttons for filtering
+        self.filter_label = tk.Label(self, text="Filter by Category:")
+        self.filter_label.pack(pady=5)
+        
+
         # Search input
-        self.search_label = tk.Label(self, text="Search:")
+        self.search_label = tk.Label(self, text="Enter Lat Lon")
         self.search_label.pack(pady=5)
         
         self.search_entry = tk.Entry(self)
         self.search_entry.pack(pady=5)
-        
-        # Multiple-choice radio buttons for filtering with a default "None" option
-        self.filter_label = tk.Label(self, text="Filter by Category:")
-        self.filter_label.pack(pady=5)
-        
-        self.selected_category = tk.StringVar(value="None")  # Default is "None"
-        
+
+
+        # Create a new frame for the category radio buttons
+        category_frame = tk.Frame(self)
+        category_frame.pack(pady=10)
+        # Initialize the selected_category variable
+        self.selected_category = tk.StringVar()
         # Fetch unique categories from the database
         if 'Category' in self.controller.database.columns:
-            categories = ["None"] + self.controller.database['Category'].unique().tolist()
+            categories = self.controller.database['Category'].unique().tolist()
         else:
-            categories = ["None", "Category A", "Category B", "Category C"]
+            categories = ["None"]
+
+        # Define the number of categories per row
+        categories_per_row = 5
+        for index, category in enumerate(categories):
+            radiobutton = tk.Radiobutton(category_frame, text=category, variable=self.selected_category, value=category)
+            row_idx = index // categories_per_row
+            col_idx = index % categories_per_row
+            radiobutton.grid(row=row_idx, column=col_idx, sticky="w", padx=5, pady=5)
         
-        for category in categories:
-            radiobutton = tk.Radiobutton(self, text=category, variable=self.selected_category, value=category)
-            radiobutton.pack(anchor="w")
         
         # Radio buttons for English and Kids options
         self.english_label = tk.Label(self, text="English:")
@@ -99,6 +122,7 @@ class MainPage(tk.Frame):
         self.exit_button.pack()
 
     def load_csv_to_db(self):
+        '''
         # Load the CSV file into a pandas DataFrame
         data = self.database
 
@@ -118,23 +142,45 @@ class MainPage(tk.Frame):
         conn.commit()
         cursor.close()
         conn.close()
+        '''
     
     def perform_search(self):
-        query = self.search_entry.get() or None
+        # Fetch the clicked location from the map
+        input_text = self.search_entry.get()
+        if not input_text:
+            print("Please enter a valid location.")
+            return
+        
+        try:
+            self.lat, self.lon = input_text.split()
+            print(f"Selected location: Lat: {self.lat}, Lon: {self.lon}")
+        except ValueError:
+            print("Invalid input format. Please enter Lat and Lon separated by a space.")
+            return
+
         filter_category = self.selected_category.get() if self.selected_category.get() != "None" else None
+        
+        # Pass the English and Kids options to the SearchResult for filtering
+        english = self.english_option.get()
+        kids = self.kids_option.get()
+        
+        
         
         # Switch to the SearchResult
         self.controller.show_page("SearchResult")
         
         # Pass the search criteria to the SearchResult and perform the search there
         search_page = self.controller.pages["SearchResult"]
-        search_page.perform_search(query, filter_category)  
+        search_page.perform_search(self.lat,self.lon,filter_category, english, kids)
     
 class SearchResult(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        
+
+        self.no_results_label = tk.Label(self, text="", fg="red")
+        self.no_results_label.pack()
+
         self.search_label = tk.Label(self, text="Search Results:")
         self.search_label.pack(pady=10)
         
@@ -147,20 +193,40 @@ class SearchResult(tk.Frame):
         self.results_listbox.config(yscrollcommand=self.scrollbar.set)
         self.results_listbox.bind("<Double-Button-1>", self.select_result)
 
-    def perform_search(self, query, category):
+    def perform_search(self, lat, lon, category, english, kids):
         # Filter the results based on the search criteria from the database (pandas DataFrame)
         self.filtered_data = self.controller.database
-        
-        if query:
-            self.filtered_data = self.filtered_data[self.filtered_data['Name'].str.contains(query, case=False)]
-            
+
         if category and category != "None":
             self.filtered_data = self.filtered_data[self.filtered_data['Category'] == category]
-        
-        # Display the filtered results in the Listbox
-        for _, row in self.filtered_data.iterrows():
-            display_text = f"{row['Name']} (Lat: {row['Lat']}, Lon: {row['Lon']})"
-            self.results_listbox.insert(tk.END, display_text)
+
+        # Additional filters based on English and Kids options
+        if english == "Yes":
+            self.filtered_data = self.filtered_data[self.filtered_data['English'] == 'Yes']
+        if kids == "Yes":
+            self.filtered_data = self.filtered_data[self.filtered_data['Kids'] == 'Yes']
+
+        # Clear the previous results in the Listbox
+        self.results_listbox.delete(0, tk.END)
+
+        if not self.filtered_data.empty:
+            # Calculate distances between the clicked location and each restaurant
+            # (You may need to adjust this part to access the correct database)
+            self.filtered_data['Distance'] = np.sqrt(
+                (self.filtered_data['Lat'] - float(lat))**2 +
+                (self.filtered_data['Lon'] - float(lon))**2
+            )
+
+            # Sort the filtered data by distance
+            sorted_data = self.filtered_data.sort_values(by='Distance').head(10)
+
+            # Display the sorted results in the Listbox
+            for _, row in sorted_data.iterrows():
+                display_text = f"{row['Name']} (Distance: {row['Distance']}, ReviewPoint: {row['Review_Point']},Review: {row['Review']})"
+                self.results_listbox.insert(tk.END, display_text)
+        else:
+            # Show a message if there are no matching results
+            self.no_results_label.config(text="No matching results found.")
 
     def select_result(self, event):
         # Get the selected result's index
@@ -179,7 +245,7 @@ class Result(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         
-        self.result_label = tk.Label(self, text="Result Page: Chosen Result")
+        self.result_label = tk.Label(self, text="Chosen Result")
         self.result_label.pack(pady=10)
         
         # Button to copy the link to clipboard
@@ -213,10 +279,22 @@ class Result(tk.Frame):
         self.exit_button = tk.Button(self, text="Exit", command=self.controller.quit)
         self.exit_button.pack()
 
+    def translate_to_english(self, text):
+        translator = LibreTranslate(api_url="https://api_url", api_key="YOUR_API_KEY")
+        return translator.translate(text, source_lang="auto", target_lang="en")
+
     def display_details(self, record):
         # Display the details of the selected result and show its location on the map.
         # Update the result label with the restaurant's name
         self.result_label.config(text=f"Result Page: {record['Name']}")
+        
+        # If English was selected, translate the review
+        review_text = record['Review']
+        if self.controller.pages["MainPage"].english_option.get() == "Yes":
+            review_text = self.translate_to_english(review_text)
+        
+        # Display the (possibly translated) review (you can adjust this to show it in a GUI element)
+        print(f"Review: {review_text}")
         
         # Update the map marker to the location of the selected restaurant
         self.result_marker.location = [record['Lat'], record['Lon']]
@@ -227,7 +305,7 @@ class Result(tk.Frame):
         
         # Refresh the map by saving it again
         self.map.save(self.map_filepath)
-
+        
     def copy_to_clipboard(self):
         # Here, for demonstration purposes, I'm copying the first link from "Option 1" in the database. 
         # You can modify this based on your requirements.
