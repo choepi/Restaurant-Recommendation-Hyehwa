@@ -1,6 +1,7 @@
 # pip install folium
 # pip install geocoder
 # pip install mysql-connector-python
+import requests
 import tkinter as tk
 from tkinter import ttk
 import webbrowser
@@ -92,7 +93,6 @@ class MainPage(tk.Frame):
     def download_and_prepare_data(self):
         # Download data (this could be from a web source, file, API, etc.)
         # For demonstration, let's assume we're fetching data from an API using the requests library
-        # import requests
         # response = requests.get('YOUR_API_ENDPOINT')
         # data = response.json()
 
