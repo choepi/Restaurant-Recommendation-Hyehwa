@@ -1,1 +1,101 @@
-﻿
+Name,Latitude,Longitude,Review Point,Review,Category
+Restaurant_0,37.581730431484736,127.00744885348855,5,Review for Restaurant_0,Japanese
+Restaurant_1,37.587258902240244,127.01133941158916,2,Review for Restaurant_1,Fusion
+Restaurant_2,37.58887090050458,126.99695559915216,5,Review for Restaurant_2,Western
+Restaurant_3,37.58768782548459,127.008060368855,1,Review for Restaurant_3,Barbecue
+Restaurant_4,37.58161670516926,126.9923800446974,5,Review for Restaurant_4,Japanese
+Restaurant_5,37.58722383841818,127.00189883633922,4,Review for Restaurant_5,Dessert
+Restaurant_6,37.57583736958985,127.00683011568594,4,Review for Restaurant_6,Korean
+Restaurant_7,37.57528198016349,127.00083627459944,2,Review for Restaurant_7,Western
+Restaurant_8,37.58604485399954,127.00419296478103,4,Review for Restaurant_8,Chinese
+Restaurant_9,37.573972120795354,127.00542584231114,1,Review for Restaurant_9,Fusion
+Restaurant_10,37.57382273152064,126.99963420192621,4,Review for Restaurant_10,Chinese
+Restaurant_11,37.5916344357189,127.01056426592577,2,Review for Restaurant_11,Chinese
+Restaurant_12,37.59077679312144,126.99771039412589,4,Review for Restaurant_12,Korean
+Restaurant_13,37.57474489632616,127.01082738120782,2,Review for Restaurant_13,Seafood
+Restaurant_14,37.582308942982344,126.99742259676167,3,Review for Restaurant_14,Barbecue
+Restaurant_15,37.5798578082888,126.99966752777712,5,Review for Restaurant_15,Japanese
+Restaurant_16,37.586666884974,127.00251754988737,4,Review for Restaurant_16,Vegetarian
+Restaurant_17,37.578108223401486,127.00497886241561,1,Review for Restaurant_17,Western
+Restaurant_18,37.58717076177888,126.99717840425161,3,Review for Restaurant_18,Vegetarian
+Restaurant_19,37.59137276672656,127.00357811562823,4,Review for Restaurant_19,Dessert
+Restaurant_20,37.57445469423121,127.01021992418174,5,Review for Restaurant_20,Korean
+Restaurant_21,37.59100573203414,127.00270179002914,4,Review for Restaurant_21,Seafood
+Restaurant_22,37.57636656187274,127.01101941033801,1,Review for Restaurant_22,Fast Food
+Restaurant_23,37.57820669286687,127.01095651999508,1,Review for Restaurant_23,Vegetarian
+Restaurant_24,37.580308695229654,127.0054805660892,5,Review for Restaurant_24,Vegetarian
+Restaurant_25,37.588883284105904,127.00064130093575,5,Review for Restaurant_25,Western
+Restaurant_26,37.579244355178524,127.00551041865195,4,Review for Restaurant_26,Korean
+Restaurant_27,37.57267320853932,126.99827898940435,3,Review for Restaurant_27,Fusion
+Restaurant_28,37.57315568332726,126.99303996494804,2,Review for Restaurant_28,Seafood
+Restaurant_29,37.572797720776734,127.0025553884749,5,Review for Restaurant_29,Chinese
+Restaurant_30,37.57825119824509,127.00927915231223,4,Review for Restaurant_30,Vegetarian
+Restaurant_31,37.588327998605266,126.99203844247002,1,Review for Restaurant_31,Dessert
+Restaurant_32,37.58689300121578,127.00312441034585,4,Review for Restaurant_32,Fusion
+Restaurant_33,37.581769545535664,127.01113818545755,4,Review for Restaurant_33,Barbecue
+Restaurant_34,37.589231938139385,127.0035369103081,1,Review for Restaurant_34,Barbecue
+Restaurant_35,37.572986586824115,127.00659257516122,3,Review for Restaurant_35,Fast Food
+Restaurant_36,37.577747459306046,127.0044795965857,1,Review for Restaurant_36,Seafood
+Restaurant_37,37.57313998530842,127.00337727356622,5,Review for Restaurant_37,Fast Food
+Restaurant_38,37.58861863984228,126.99576156836886,5,Review for Restaurant_38,Japanese
+Restaurant_39,37.589565633537944,126.99578352882604,2,Review for Restaurant_39,Fast Food
+Restaurant_40,37.580501742933755,126.9930664288346,5,Review for Restaurant_40,Fast Food
+Restaurant_41,37.590247025731905,126.99942033265864,5,Review for Restaurant_41,Vegetarian
+Restaurant_42,37.57689254774545,127.01093103844545,4,Review for Restaurant_42,Vegetarian
+Restaurant_43,37.58864677060291,126.99477239941321,4,Review for Restaurant_43,Fusion
+Restaurant_44,37.58192561366772,126.99192205425527,4,Review for Restaurant_44,Barbecue
+Restaurant_45,37.582460983886214,126.99636259732702,1,Review for Restaurant_45,Chinese
+Restaurant_46,37.58194794888871,127.00687144216047,5,Review for Restaurant_46,Western
+Restaurant_47,37.59130789650961,127.00460660288633,2,Review for Restaurant_47,Japanese
+Restaurant_48,37.57259624372027,127.00487267958376,1,Review for Restaurant_48,Vegetarian
+Restaurant_49,37.57736001992594,127.00769056467163,2,Review for Restaurant_49,Fusion
+Restaurant_50,37.57530988513512,126.99767403205345,3,Review for Restaurant_50,Chinese
+Restaurant_51,37.57419177024871,127.0104961841521,2,Review for Restaurant_51,Korean
+Restaurant_52,37.590303451977405,127.00316247551704,5,Review for Restaurant_52,Dessert
+Restaurant_53,37.578323439494106,126.99444413882719,3,Review for Restaurant_53,Dessert
+Restaurant_54,37.591358301397584,127.0036875462726,5,Review for Restaurant_54,Western
+Restaurant_55,37.576109710836235,127.0090590256318,2,Review for Restaurant_55,Fusion
+Restaurant_56,37.57505186162715,127.0035108325023,5,Review for Restaurant_56,Vegetarian
+Restaurant_57,37.57628232724453,127.00552865423181,2,Review for Restaurant_57,Chinese
+Restaurant_58,37.59140651801085,126.99448513435019,2,Review for Restaurant_58,Japanese
+Restaurant_59,37.58634051613934,126.99830818762803,3,Review for Restaurant_59,Dessert
+Restaurant_60,37.5785185373064,126.99880157761802,2,Review for Restaurant_60,Fast Food
+Restaurant_61,37.580198560534136,127.00167547819353,2,Review for Restaurant_61,Fusion
+Restaurant_62,37.58039197323986,127.00024163944485,4,Review for Restaurant_62,Dessert
+Restaurant_63,37.58156363712952,126.99328536725547,4,Review for Restaurant_63,Korean
+Restaurant_64,37.573094650549685,126.9936839236706,5,Review for Restaurant_64,Barbecue
+Restaurant_65,37.57681598492886,127.00777940696796,2,Review for Restaurant_65,Vegetarian
+Restaurant_66,37.5741559309568,127.00469894098477,4,Review for Restaurant_66,Barbecue
+Restaurant_67,37.57777079012829,127.00622679221942,1,Review for Restaurant_67,Fast Food
+Restaurant_68,37.572694698010416,126.99356310000263,2,Review for Restaurant_68,Chinese
+Restaurant_69,37.58254102259108,127.00512925956252,1,Review for Restaurant_69,Dessert
+Restaurant_70,37.58245950987944,126.99516926235722,5,Review for Restaurant_70,Fusion
+Restaurant_71,37.58351085436028,127.00746049438038,5,Review for Restaurant_71,Chinese
+Restaurant_72,37.58955896009397,127.00810873279455,1,Review for Restaurant_72,Korean
+Restaurant_73,37.58560949981278,126.99731473202445,5,Review for Restaurant_73,Seafood
+Restaurant_74,37.57517478748695,127.00210325891014,1,Review for Restaurant_74,Barbecue
+Restaurant_75,37.57971291690564,126.9974220615485,5,Review for Restaurant_75,Fusion
+Restaurant_76,37.583586086650875,126.9959942282464,2,Review for Restaurant_76,Japanese
+Restaurant_77,37.573229664673136,127.00228946004246,2,Review for Restaurant_77,Seafood
+Restaurant_78,37.58364543948176,127.00256319204983,5,Review for Restaurant_78,Fast Food
+Restaurant_79,37.57238151480427,127.00485267270687,5,Review for Restaurant_79,Western
+Restaurant_80,37.58823544318752,127.0034134718127,4,Review for Restaurant_80,Japanese
+Restaurant_81,37.585405236479815,126.99421082867332,5,Review for Restaurant_81,Seafood
+Restaurant_82,37.572224731992115,126.99461599453389,4,Review for Restaurant_82,Dessert
+Restaurant_83,37.5841510562526,127.00881650610096,3,Review for Restaurant_83,Korean
+Restaurant_84,37.57601889538604,126.99812493275861,4,Review for Restaurant_84,Western
+Restaurant_85,37.59109338149292,126.99790370443013,5,Review for Restaurant_85,Barbecue
+Restaurant_86,37.578174767559304,127.00967833654421,2,Review for Restaurant_86,Dessert
+Restaurant_87,37.58825613547334,126.99488987038787,4,Review for Restaurant_87,Vegetarian
+Restaurant_88,37.584236599534755,127.00425346446437,4,Review for Restaurant_88,Chinese
+Restaurant_89,37.58171520201013,126.99493833060448,3,Review for Restaurant_89,Vegetarian
+Restaurant_90,37.57304001289604,127.01062103763176,5,Review for Restaurant_90,Seafood
+Restaurant_91,37.57752851366436,126.99421831942561,5,Review for Restaurant_91,Western
+Restaurant_92,37.57501196413223,127.00101893419709,4,Review for Restaurant_92,Barbecue
+Restaurant_93,37.58053456479817,126.99450503265712,4,Review for Restaurant_93,Barbecue
+Restaurant_94,37.58273399620699,126.9947376911308,3,Review for Restaurant_94,Japanese
+Restaurant_95,37.572928893775966,126.99687637831514,4,Review for Restaurant_95,Chinese
+Restaurant_96,37.583398693038724,126.99338114584725,4,Review for Restaurant_96,Japanese
+Restaurant_97,37.58412777798719,127.00729746713654,1,Review for Restaurant_97,Korean
+Restaurant_98,37.57267291993142,127.00250656890657,5,Review for Restaurant_98,Chinese
+Restaurant_99,37.57424137777762,126.99503587318927,4,Review for Restaurant_99,Dessert
