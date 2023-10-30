@@ -12,12 +12,11 @@ import mysql.connector
 from translate import LibreTranslate
 
 
-class SampleApp(tk.Tk):
+class NaverApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
-        
-        self.title("Multi-Page Application")
-        
+        self.title("NaverFood")
+        self.iconbitmap("RDBMS_Project/naverfood.png")
         # Create a container frame to hold the pages
         container = ttk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
@@ -46,7 +45,7 @@ class SampleApp(tk.Tk):
         self.pages = {}
         
         # Create and add pages to the dictionary
-        for PageClass in (MainPage, SearchPage, Result):
+        for PageClass in (MainPage, SearchResult, Result):
             page_name = PageClass.__name__
             page = PageClass(parent=self.notebook, controller=self)
             self.pages[page_name] = page
@@ -90,49 +89,40 @@ class MainPage(tk.Frame):
         self.exit_button = tk.Button(self, text="Exit", command=self.controller.quit)
         self.exit_button.pack()
     
-    def download_and_prepare_data(self):
-        # Download data (this could be from a web source, file, API, etc.)
-        # For demonstration, let's assume we're fetching data from an API using the requests library
-        # response = requests.get('YOUR_API_ENDPOINT')
-        # data = response.json()
+    def load_csv_to_db(self):
+        file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        if not file_path:
+            return
 
+        # Load the CSV file into a pandas DataFrame
+        data = pd.read_csv(file_path)
 
-        # translator = LibreTranslate()
-        # for item in data:
-            # translated_description = translator.translate(item, source_lang="ko", target_lang="en")
-            # data["item"] = translated_description
+        # Connect to MySQL
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="1083"
+        )
+        cursor = conn.cursor()
 
+        # Insert the data into the MySQL table
+        for index, row in data.iterrows():
+            cursor.execute("INSERT INTO your_table_name (column1, column2, ...) VALUES (%s, %s, ...)", 
+                           (row['column1'], row['column2'], ...))
 
-        # Prepare data (cleaning, transformation, etc.)
-        # For demonstration:
-        # cleaned_data = [clean(item) for item in data]  # Assuming a 'clean' function exists
-        
-        # Save to MySQL
-        # import mysql.connector
-        # connection = mysql.connector.connect(
-        #     host="YOUR_HOST",
-        #     user="YOUR_USER",
-        #     password="YOUR_PASSWORD",
-        #     database="YOUR_DATABASE"
-        # )
-        # cursor = connection.cursor()
-        # for item in cleaned_data:
-        #     cursor.execute("YOUR_INSERT_STATEMENT", item)
-        # connection.commit()
-        # cursor.close()
-        # connection.close()
-        
-        pass  # Remove this line when uncommenting the above code
+        conn.commit()
+        cursor.close()
+        conn.close()
     
     def perform_search(self):
         query = self.search_entry.get() or None
         filter_category = self.selected_category.get() if self.selected_category.get() != "None" else None
         
-        # Switch to the SearchPage
-        self.controller.show_page("SearchPage")
+        # Switch to the SearchResult
+        self.controller.show_page("SearchResult")
         
-        # Pass the search criteria to the SearchPage and perform the search there
-        search_page = self.controller.pages["SearchPage"]
+        # Pass the search criteria to the SearchResult and perform the search there
+        search_page = self.controller.pages["SearchResult"]
         search_page.perform_search(query, filter_category)  
     
     def fetch_data_from_db(self, query=None, category=None):
@@ -149,7 +139,7 @@ class MainPage(tk.Frame):
             mock_data = [item for item in mock_data if category == item["category"]]
         return mock_data
 
-class SearchPage(tk.Frame):
+class SearchResult(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
@@ -241,7 +231,7 @@ class Result(tk.Frame):
 
 
 if __name__ == "__main__":
-    app = SampleApp()
+    app = NaverApp()
     app.mainloop()
 
     #cd D:\RDMS\RDBMS_Project\
