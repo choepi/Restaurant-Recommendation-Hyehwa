@@ -8,6 +8,8 @@ import folium
 import os
 import geocoder
 import mysql.connector
+from translate import LibreTranslate
+
 
 class SampleApp(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -93,7 +95,14 @@ class MainPage(tk.Frame):
         # import requests
         # response = requests.get('YOUR_API_ENDPOINT')
         # data = response.json()
-        
+
+
+        # translator = LibreTranslate()
+        # for item in data:
+            # translated_description = translator.translate(item, source_lang="ko", target_lang="en")
+            # data["item"] = translated_description
+
+
         # Prepare data (cleaning, transformation, etc.)
         # For demonstration:
         # cleaned_data = [clean(item) for item in data]  # Assuming a 'clean' function exists
