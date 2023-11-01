@@ -6,7 +6,7 @@ import random
 np.random.seed(42)
 
 # Generate random data
-num_samples = 10000
+num_samples = 100
 restaurant_names = [f"Restaurant {i}" for i in range(1, num_samples + 1)]
 lats = [37.5822 + random.uniform(-0.01, 0.01) for _ in range(num_samples)]  # Around Hyehwa
 lons = [126.9988 + random.uniform(-0.01, 0.01) for _ in range(num_samples)]  # Around Hyehwa

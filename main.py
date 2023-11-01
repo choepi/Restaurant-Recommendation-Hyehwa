@@ -14,13 +14,15 @@ from translate import LibreTranslate
 import pandas as pd
 from tkintermapview import TkinterMapView
 import numpy as np
+import math
+from math import sin, cos, sqrt, atan2, radians
 
 class NaverApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         self.geometry("1000x800")
         self.title("NaverFood")
-        self.iconbitmap("RDBMS_Project/naverfood.png")
+        self.iconbitmap("RDBMS_Project/naverfood.ico")
         
         # Create a container frame to hold the pages
         container = ttk.Frame(self)
@@ -184,7 +186,7 @@ class SearchResult(tk.Frame):
         self.search_label = tk.Label(self, text="Search Results:")
         self.search_label.pack(pady=10)
         
-        self.results_listbox = tk.Listbox(self, height=10, width=50)
+        self.results_listbox = tk.Listbox(self, height=30, width=100)
         self.results_listbox.pack(pady=10)
         
         self.scrollbar = tk.Scrollbar(self, command=self.results_listbox.yview)
@@ -208,21 +210,49 @@ class SearchResult(tk.Frame):
 
         # Clear the previous results in the Listbox
         self.results_listbox.delete(0, tk.END)
+        def haversine(lat1, lon1, lat2, lon2):
+            # Convert latitude and longitude from degrees to radians
+            lat1 = radians(lat1)
+            lon1 = radians(lon1)
+            lat2 = radians(lat2)
+            lon2 = radians(lon2)
+
+            # Radius of the Earth in kilometers
+            R = 6371.0
+
+            # Differences in latitude and longitude
+            dlat = lat2 - lat1
+            dlon = lon2 - lon1
+
+            # Haversine formula
+            a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+            c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+            # Calculate the distance
+            distance = R * c
+
+            return distance
+        
 
         if not self.filtered_data.empty:
             # Calculate distances between the clicked location and each restaurant
             # (You may need to adjust this part to access the correct database)
-            self.filtered_data['Distance'] = np.sqrt(
-                (self.filtered_data['Lat'] - float(lat))**2 +
-                (self.filtered_data['Lon'] - float(lon))**2
-            )
+            self.filtered_data['Distance'] = self.filtered_data.apply(
+                lambda row: haversine(float(lat), float(lon), row['Lat'], row['Lon']),
+                    axis=1)
 
             # Sort the filtered data by distance
             sorted_data = self.filtered_data.sort_values(by='Distance').head(10)
 
             # Display the sorted results in the Listbox
             for _, row in sorted_data.iterrows():
-                display_text = f"{row['Name']} (Distance: {row['Distance']}, ReviewPoint: {row['Review_Point']},Review: {row['Review']})"
+                d = row['Distance']
+                if d>1:
+                    distance = str(round(row['Distance'], 2)) + "km"
+                else:
+                    distance = str(round(row['Distance']*1000, 2)) + "m"
+                review_point = round(row['Review_Point'], 2)
+                display_text = f"{row['Name']} (Category: {row['Category']}, Distance: {distance}, ReviewPoint: {review_point:.2f}, Review: {row['Review']})"
                 self.results_listbox.insert(tk.END, display_text)
         else:
             # Show a message if there are no matching results
