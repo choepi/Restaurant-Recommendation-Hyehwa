@@ -1,7 +1,7 @@
 # pip install folium
 # pip install geocoder
 # pip install mysql-connector-python
-#pip install tkintermapview
+# pip install tkintermapview
 import requests
 import tkinter as tk
 from tkinter import ttk, filedialog
@@ -14,13 +14,15 @@ from translate import LibreTranslate
 import pandas as pd
 from tkintermapview import TkinterMapView
 import numpy as np
+import math
+from math import sin, cos, sqrt, atan2, radians
 
 class NaverApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         self.geometry("1000x800")
         self.title("NaverFood")
-        self.iconbitmap("RDBMS_Project/naverfood.png")
+        self.iconbitmap("RDBMS_Project/naverfood.ico")
         
         # Create a container frame to hold the pages
         container = ttk.Frame(self)
@@ -74,6 +76,10 @@ class MainPage(tk.Frame):
         # Search input
         self.search_label = tk.Label(self, text="Enter Lat Lon")
         self.search_label.pack(pady=5)
+
+        # Create a Text widget to display messages
+        self.message_text = tk.Text(self, height=1, width=50)
+        self.message_text.pack_forget()
         
         self.search_entry = tk.Entry(self)
         self.search_entry.pack(pady=5)
@@ -147,17 +153,22 @@ class MainPage(tk.Frame):
     def perform_search(self):
         # Fetch the clicked location from the map
         input_text = self.search_entry.get()
+        self.go = 1
         if not input_text:
-            print("Please enter a valid location.")
-            return
-        
-        try:
-            self.lat, self.lon = input_text.split()
-            print(f"Selected location: Lat: {self.lat}, Lon: {self.lon}")
-        except ValueError:
-            print("Invalid input format. Please enter Lat and Lon separated by a space.")
-            return
+            self.go = 0
+            message = "Please enter a valid location."
+        else:
+            try:
+                lat, lon = input_text.split()
+                message = f"selected:Lat: {lat}, Lon: {lon}"
+            except ValueError:
+                self.go = 0
+                message = "Invalid input format. Please enter Lat and Lon separated by a space."
 
+        # Show the Text widget and insert the message
+        self.message_text.delete(1.0, tk.END)
+        self.message_text.pack()
+        self.message_text.insert(tk.END, message)
         filter_category = self.selected_category.get() if self.selected_category.get() != "None" else None
         
         # Pass the English and Kids options to the SearchResult for filtering
@@ -166,12 +177,18 @@ class MainPage(tk.Frame):
         
         
         
-        # Switch to the SearchResult
-        self.controller.show_page("SearchResult")
         
-        # Pass the search criteria to the SearchResult and perform the search there
-        search_page = self.controller.pages["SearchResult"]
-        search_page.perform_search(self.lat,self.lon,filter_category, english, kids)
+        if self.go == 1:
+            self.message_text.delete(1.0, tk.END)
+            lat, lon = input_text.split()
+            message = f"selected:Lat: {lat}, Lon: {lon}"
+            self.message_text.insert(tk.END, message)
+            # Switch to thse SearchResult
+            self.controller.show_page("SearchResult")
+        
+            # Pass the search criteria to the SearchResult and perform the search there
+            search_page = self.controller.pages["SearchResult"]
+            search_page.perform_search(lat,lon,filter_category, english, kids)
     
 class SearchResult(tk.Frame):
     def __init__(self, parent, controller):
@@ -184,7 +201,7 @@ class SearchResult(tk.Frame):
         self.search_label = tk.Label(self, text="Search Results:")
         self.search_label.pack(pady=10)
         
-        self.results_listbox = tk.Listbox(self, height=10, width=50)
+        self.results_listbox = tk.Listbox(self, height=15, width=100)
         self.results_listbox.pack(pady=10)
         
         self.scrollbar = tk.Scrollbar(self, command=self.results_listbox.yview)
@@ -208,21 +225,49 @@ class SearchResult(tk.Frame):
 
         # Clear the previous results in the Listbox
         self.results_listbox.delete(0, tk.END)
+        def haversine(lat1, lon1, lat2, lon2):
+            # Convert latitude and longitude from degrees to radians
+            lat1 = radians(lat1)
+            lon1 = radians(lon1)
+            lat2 = radians(lat2)
+            lon2 = radians(lon2)
+
+            # Radius of the Earth in kilometers
+            R = 6371.0
+
+            # Differences in latitude and longitude
+            dlat = lat2 - lat1
+            dlon = lon2 - lon1
+
+            # Haversine formula
+            a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+            c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+            # Calculate the distance
+            distance = R * c
+
+            return distance
+        
 
         if not self.filtered_data.empty:
             # Calculate distances between the clicked location and each restaurant
             # (You may need to adjust this part to access the correct database)
-            self.filtered_data['Distance'] = np.sqrt(
-                (self.filtered_data['Lat'] - float(lat))**2 +
-                (self.filtered_data['Lon'] - float(lon))**2
-            )
+            self.filtered_data['Distance'] = self.filtered_data.apply(
+                lambda row: haversine(float(lat), float(lon), row['Lat'], row['Lon']),
+                    axis=1)
 
             # Sort the filtered data by distance
             sorted_data = self.filtered_data.sort_values(by='Distance').head(10)
 
             # Display the sorted results in the Listbox
             for _, row in sorted_data.iterrows():
-                display_text = f"{row['Name']} (Distance: {row['Distance']}, ReviewPoint: {row['Review_Point']},Review: {row['Review']})"
+                d = row['Distance']
+                if d>1:
+                    distance = str(round(row['Distance'], 2)) + "km"
+                else:
+                    distance = str(round(row['Distance']*1000, 2)) + "m"
+                review_point = round(row['Review_Point'], 2)
+                display_text = f"{row['Name']} (Category: {row['Category']}, Distance: {distance}, ReviewPoint: {review_point:.2f}, Review: {row['Review']})"
                 self.results_listbox.insert(tk.END, display_text)
         else:
             # Show a message if there are no matching results
