@@ -1,7 +1,5 @@
-# pip install folium
-# pip install geocoder
-# pip install mysql-connector-python
-# pip install tkintermapview
+# pip install -r requirements.txt
+# pip freeze > requirements.txt (only run to update requirements.txt)
 import requests
 import tkinter as tk
 from tkinter import ttk, filedialog
