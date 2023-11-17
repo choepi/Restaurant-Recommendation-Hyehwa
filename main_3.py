@@ -8,7 +8,6 @@ import folium
 import os
 import geocoder
 import mysql.connector
-from translate import LibreTranslate
 import pandas as pd
 from tkintermapview import TkinterMapView
 import numpy as np
@@ -72,6 +71,28 @@ def calculator_distance(para) :
     df = df.sort_values(by='distance').head(5)
     restaurant_list = df['id'].tolist()
     return restaurant_list
+
+def translate_korean_to_english(korean_text):
+    url = "https://google-translate1.p.rapidapi.com/language/translate/v2"
+        
+    payload = {
+        "q": korean_text,
+        "target": "en",
+        "source": "ko"
+    }
+    headers = {
+        "content-type": "application/x-www-form-urlencoded",
+        "Accept-Encoding": "application/gzip",
+        "X-RapidAPI-Key": "2f168c8413msh98205027eeeb4d9p1410bejsn6f4d9cf9b76e",
+        "X-RapidAPI-Host": "google-translate1.p.rapidapi.com"
+    }
+
+    response = requests.post(url, data=payload, headers=headers)
+    if response.status_code == 200:
+        result = response.json()
+        return result['data']['translations'][0]['translatedText']
+    else:
+        return "Error: Unable to translate"
 
 class NaverApp(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -195,13 +216,6 @@ class MainPage(tk.Frame):
         for option in ["Yes", "No"]:
             radiobutton = tk.Radiobutton(self, text=option, variable=self.english_option, value=option)
             radiobutton.pack(anchor="w")
-
-        self.kids_label = tk.Label(self, text="Kids:")
-        self.kids_label.pack(pady=5)
-        self.kids_option = tk.StringVar(value="No")
-        for option in ["Yes", "No"]:
-            radiobutton = tk.Radiobutton(self, text=option, variable=self.kids_option, value=option)
-            radiobutton.pack(anchor="w")
         
         # Search button
         self.search_button = tk.Button(self, text="Search", command=self.perform_search)
@@ -235,7 +249,6 @@ class MainPage(tk.Frame):
         
         # Pass the English and Kids options to the SearchResult for filtering
         english = self.english_option.get()
-        kids = self.kids_option.get()
         
         
         if self.go == 1:
@@ -257,7 +270,7 @@ class MainPage(tk.Frame):
                 if i == cleaned_str:
                     self.cat_num = self.categories.index(i)
             print(self.cat_num)
-            search_page.perform_search(lat,lon, self.cat_num, english, kids)
+            search_page.perform_search(lat,lon, self.cat_num, english)
     
 class SearchResult(tk.Frame):
     def __init__(self, parent, controller):
@@ -280,12 +293,8 @@ class SearchResult(tk.Frame):
         
         self.results_listbox.config(yscrollcommand=self.scrollbar.set)
         self.results_listbox.bind("<Double-Button-1>", self.select_result)
-    
-    def translate_to_english(self, text):
-        translator = LibreTranslate(api_url="https://api_url", api_key="YOUR_API_KEY")
-        return translator.translate(text, source_lang="auto", target_lang="en")
 
-    def perform_search(self, lat, lon, category, english, kids): # question
+    def perform_search(self, lat, lon, category, english): # question
         self.results_listbox.delete(0, tk.END)    
         user_location = (float(lat), float(lon))
 
@@ -348,23 +357,25 @@ class SearchResult(tk.Frame):
         index = self.results_listbox.curselection()[0]
         
         # Fetch the full record from the filtered_data DataFrame based on the index
-        selected_record = sorted_data.iloc[index]
+        selected_record = pd.DataFrame(sorted_data.loc[index])
         
         # Switch to the Result and display the details of the selected result
         self.controller.show_page("Result") # question
         result_page = self.controller.pages["Result"]
+        print(selected_record)
         result_page.display_details(selected_record)
 
 class Result(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        self.url = ''
         
-        self.result_label = tk.Label(self, text="Chosen Result")
+        self.result_label = tk.Label(self, text="Chosen Result", wraplength=800)
         self.result_label.pack(pady=10)
         
         # Button to copy the link to clipboard
-        self.copy_button = tk.Button(self, text="Copy Name and Link to Clipboard", command=self.copy_to_clipboard)
+        self.copy_button = tk.Button(self, text="Copy Name and Link to Clipboard", command=self.copy_to_clipboard())
         self.copy_button.pack(pady=10)
         
         # Create a map centered around Seoul (or you can center it around the user's location)
@@ -394,31 +405,28 @@ class Result(tk.Frame):
         self.exit_button = tk.Button(self, text="Exit", command=self.controller.quit)
         self.exit_button.pack()
 
-    def translate_to_english(self, text):
-        translator = LibreTranslate(api_url="https://api_url", api_key="YOUR_API_KEY")
-        return translator.translate(text, source_lang="auto", target_lang="en") 
-
     def display_details(self, record):
         # Display the details of the selected result and show its location on the map.
         # Update the result label with the restaurant's name
-        record = pd.DataFrame(record)
         record = record.transpose()
-        print(record)
-        self.result_label.config(text=f"Result Page: {record['Name']}") # question
-        
+        index = int(record.index[0])
+        self.url = str(record.loc[index, 'url'])
+        print(self.url)
+
         # If English was selected, translate the review
-        review_text = record['Review']
+        review_text = str(record.loc[index, 'Review'])
         if self.controller.pages["MainPage"].english_option.get() == "Yes":
-            review_text = self.translate_to_english(review_text)
+            review_text = translate_korean_to_english(review_text)
         
         # Display the (possibly translated) review (you can adjust this to show it in a GUI element)
-        print(f"Review: {review_text}")
+        self.result_label.config(text=f"Result Page: {str(record.loc[index, 'Name'])}\
+                                    \n Review: {review_text}")
         
         # Update the map marker to the location of the selected restaurant
-        lat = int(record['Lat'])
-        lon = int(record['Lon'])
+        lat = int(record.loc[index, 'Lat'])
+        lon = int(record.loc[index, 'Lon'])
         self.result_marker.location = [lat, lon]
-        self.result_marker.popup = folium.Popup(record['Name'])
+        self.result_marker.popup = folium.Popup(record.loc[index, 'Name'])
         
         # Center the map around the selected restaurant's location
         self.map.location = [lat, lon]
@@ -429,7 +437,8 @@ class Result(tk.Frame):
     def copy_to_clipboard(self):
         # Here, for demonstration purposes, I'm copying the first link from "Option 1" in the database. 
         # You can modify this based on your requirements.
-        link = self.controller.database.loc[0, "Name"]  # Using pandas DataFrame for example
+        link = self.url
+        print(link)
         self.clipboard_clear() # question
         self.clipboard_append(link)
         self.update()  # This is necessary to finalize the clipboard changes
