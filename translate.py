@@ -1,29 +1,28 @@
 import requests
 
-class LibreTranslate:
-    BASE_URL = "https://libretranslate.de/translate"
+def translate_korean_to_english(korean_text):
+    url = "https://google-translate1.p.rapidapi.com/language/translate/v2"
+    
+    payload = {
+        "q": korean_text,
+        "target": "en",
+        "source": "ko"
+    }
+    headers = {
+        "content-type": "application/x-www-form-urlencoded",
+        "Accept-Encoding": "application/gzip",
+        "X-RapidAPI-Key": "2f168c8413msh98205027eeeb4d9p1410bejsn6f4d9cf9b76e",
+        "X-RapidAPI-Host": "google-translate1.p.rapidapi.com"
+    }
 
-    def translate_text(self, text, source_language, target_language):
-        payload = {
-            "q": text,
-            "source": source_language,
-            "target": target_language
-        }
+    response = requests.post(url, data=payload, headers=headers)
+    if response.status_code == 200:
+        result = response.json()
+        return result['data']['translations'][0]['translatedText']
+    else:
+        return "Error: Unable to translate"
 
-        response = requests.post(self.BASE_URL, data=payload)
-
-        if response.status_code != 200:
-            return f"Error: {response.status_code}"
-
-        translated_text = response.json()['translatedText']
-        return translated_text
-
-if __name__ == "__main__":
-    translator = LibreTranslate()
-    text_to_translate = " 안녕하세요, 당신은?"
-    source_language = "ko"
-    target_language = "en"  #to english
-
-    translated = translator.translate_text(text_to_translate, source_language, target_language)
-    print(f"Original: {text_to_translate}")
-    print(f"Translated: {translated}")
+# Example usage:
+text = "즐겨찾기로 편리하게 찾아 보실 수 있습니다."
+translated_text = translate_korean_to_english(text)
+print(translated_text)
