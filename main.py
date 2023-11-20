@@ -11,16 +11,13 @@ import mysql.connector
 import pandas as pd
 from tkintermapview import TkinterMapView
 import numpy as np
-import math
-from math import sin, cos, sqrt, atan2, radians
 import mysql.connector
-from haversine import haversine
 
 def connectDB(db_use):
     mydb = mysql.connector.connect(
     host = 'localhost',
     user = 'root',
-    password = '2031mysq!', # have to change
+    password = '1083', # have to change
     database = db_use
     )
     mycursor = mydb.cursor()
@@ -191,8 +188,6 @@ class MainPage(tk.Frame):
                 category = mycursor.fetchall()
                 category = tuptoval(category)
                 category_subquery = list(category)
-                print(category_subquery)
-                print(category)
             else:
                 mycursor.execute("Select DISTINCT(category_id) FROM category")
                 category = mycursor.fetchall()
@@ -247,7 +242,7 @@ class MainPage(tk.Frame):
         self.message_text.pack()
         self.message_text.insert(tk.END, message)
         
-        # Pass the English and Kids options to the SearchResult for filtering
+        # Pass the English options to the SearchResult for filtering
         english = self.english_option.get()
         
         
@@ -269,7 +264,6 @@ class MainPage(tk.Frame):
                 cleaned_str = selected_category_str.strip("{}")
                 if i == cleaned_str:
                     self.cat_num = self.categories.index(i)
-            print(self.cat_num)
             search_page.perform_search(lat,lon, self.cat_num, english)
     
 class SearchResult(tk.Frame):
@@ -317,8 +311,6 @@ class SearchResult(tk.Frame):
                 AND category_id = {}
                 """.format(tuple(restaurant_list) if restaurant_list else (0,), 
                 cs if category_subquery else (0,))
-            
-        print(query)
         mycursor.execute(query)
         
         restaurnat_Result = mycursor.fetchall()
@@ -327,14 +319,13 @@ class SearchResult(tk.Frame):
         for i in range(len(restaurant_result_list)) :
             val = str(restaurant_result_list[i]).replace('(', '').replace(')', '').replace(',', '')
             restaurant.append(int(val))
-        print(restaurant)   
         if not len(restaurant) == 0 :
             global sorted_data
             # Calculate distances between the clicked location and each restaurant
             # (You may need to adjust this part to access the correct database)
             sorted_data = []
-            dataframe_name = ['Name', 'Review', 'Review_Point', 'Category', 'Lat', 'Lon', 'url']
-            mycursor.execute("SELECT rt.name, rv.review, s.starRating, c.category, rt.lat, rt.lon, rt.naver_map_url\
+            dataframe_name = ['id', 'Name', 'Review', 'Review_Point', 'Category', 'Lat', 'Lon', 'url']
+            mycursor.execute("SELECT rt.restaurant_id, rt.name, rv.review, s.starRating, c.category, rt.lat, rt.lon, rt.naver_map_url\
                                 FROM restaurant rt\
                                 JOIN review rv ON rt.restaurant_id = rv.restaurant_id\
                                 JOIN score s ON rt.restaurant_id = s.restaurant_id\
@@ -344,10 +335,39 @@ class SearchResult(tk.Frame):
             sorted_data = pd.DataFrame(sorted_value, columns = dataframe_name)
 
             # Display the sorted results in the Listbox
-            for i in range(len(sorted_data)):
-                display_text = f"{sorted_data.loc[i, 'Name']} (Category: {sorted_data.loc[i, 'Category']}, \
-                    ReviewPoint: {sorted_data.loc[i, 'Review_Point']}, Review: {sorted_data.loc[i, 'Review']})"
-                self.results_listbox.insert(tk.END, display_text)
+            for i in range(len(sorted_data)-1):
+                if i == 0 :
+                    mycursor.execute("SELECT COUNT(rv.review)\
+                                FROM restaurant rt\
+                                JOIN review rv ON rt.restaurant_id = rv.restaurant_id\
+                                WHERE rt.restaurant_id = {}".format(sorted_data.loc[i, 'id']))
+                    review_num = mycursor.fetchall()
+                    
+                    display_text = f"{sorted_data.loc[i, 'Name']} - Category: {sorted_data.loc[i, 'Category']}, ReviewPoint: {sorted_data.loc[i, 'Review_Point']}, The number of reviews: {review_num[0][0]}"
+                    self.results_listbox.insert(tk.END, display_text)
+                    for j in range(10):
+                        display_text = f"\n Review: {sorted_data.loc[i+j, 'Review']}"
+                        self.results_listbox.insert(tk.END, display_text)
+                
+                elif sorted_data.loc[i, 'Name'] == sorted_data.loc[i-1, 'Name']:
+                    continue
+
+                else :
+                    mycursor.execute("SELECT COUNT(rv.review)\
+                                FROM restaurant rt\
+                                JOIN review rv ON rt.restaurant_id = rv.restaurant_id\
+                                WHERE rt.restaurant_id = {}".format(sorted_data.loc[i, 'id']))
+                    review_num = mycursor.fetchall()
+
+                    display_text = ''
+                    self.results_listbox.insert(tk.END, display_text)
+                    display_text = f"{sorted_data.loc[i, 'Name']} - Category: {sorted_data.loc[i, 'Category']}, ReviewPoint: {sorted_data.loc[i, 'Review_Point']}, The number of reviews: {review_num[0][0]}"
+                    self.results_listbox.insert(tk.END, display_text)
+                    for j in range(10):
+                        display_text = f"\n Review: {sorted_data.loc[i+j, 'Review']}"
+                        self.results_listbox.insert(tk.END, display_text)
+            # self.results_listbox.insert(tk.END, display_text)
+            print(display_text)
         else:
             # Show a message if there are no matching results
             self.no_results_label.config(text="No matching results found.")
