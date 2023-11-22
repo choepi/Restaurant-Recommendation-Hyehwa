@@ -12,6 +12,9 @@ import pandas as pd
 from tkintermapview import TkinterMapView
 import numpy as np
 import mysql.connector
+from transformers import MarianMTModel, MarianTokenizer
+from typing import Sequence
+import threading
 
 def connectDB(db_use):
     mydb = mysql.connector.connect(
@@ -125,6 +128,20 @@ class NaverApp(tk.Tk):
         page = self.pages[page_name]
         self.notebook.select(page)
 
+
+class Translator:
+    def __init__(self, source_lang: str, dest_lang: str) -> None:
+        self.model_name = f'Helsinki-NLP/opus-mt-{source_lang}-{dest_lang}'
+        self.model = MarianMTModel.from_pretrained(self.model_name)
+        self.tokenizer = MarianTokenizer.from_pretrained(self.model_name)
+        
+    def translate(self, texts: Sequence[str]) -> Sequence[str]:
+        tokens = self.tokenizer(list(texts), return_tensors="pt", padding=True)
+        translate_tokens = self.model.generate(**tokens)
+        return [self.tokenizer.decode(t, skip_special_tokens=True) for t in translate_tokens]
+translator = Translator('ko', 'en')
+
+
 class MainPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -152,9 +169,14 @@ class MainPage(tk.Frame):
 
         # Create a Text widget to display messages
         self.message_text = tk.Text(self, height=1, width=50)
+        self.message_text.config(state="disabled")
         self.message_text.pack_forget()
         
         self.search_entry = tk.Entry(self)
+        current_location = geocoder.ip('me').latlng
+        current_location = ' '.join(map(str, current_location))
+        self.search_entry.insert(0, current_location)
+        self.search_entry.bind("<Return>", lambda event: self.perform_search())
         self.search_entry.pack(pady=5)
 
         self.cat_num = 0
@@ -240,7 +262,9 @@ class MainPage(tk.Frame):
         # Show the Text widget and insert the message
         self.message_text.delete(1.0, tk.END)
         self.message_text.pack()
+        self.message_text.config(state="normal")
         self.message_text.insert(tk.END, message)
+        self.message_text.config(state="disabled")
         
         # Pass the English options to the SearchResult for filtering
         english = self.english_option.get()
@@ -287,9 +311,10 @@ class SearchResult(tk.Frame):
         
         self.results_listbox.config(yscrollcommand=self.scrollbar.set)
         self.results_listbox.bind("<Double-Button-1>", self.select_result)
+        self.selected_record = None
 
     def perform_search(self, lat, lon, category, english): # question
-        self.results_listbox.delete(0, tk.END)    
+        self.results_listbox.delete(0, tk.END)
         user_location = (float(lat), float(lon))
 
         restaurant_list = calculator_distance(user_location)
@@ -319,55 +344,27 @@ class SearchResult(tk.Frame):
         for i in range(len(restaurant_result_list)) :
             val = str(restaurant_result_list[i]).replace('(', '').replace(')', '').replace(',', '')
             restaurant.append(int(val))
+
+
         if not len(restaurant) == 0 :
             global sorted_data
             # Calculate distances between the clicked location and each restaurant
             # (You may need to adjust this part to access the correct database)
             sorted_data = []
-            dataframe_name = ['id', 'Name', 'Review', 'Review_Point', 'Category', 'Lat', 'Lon', 'url']
-            mycursor.execute("SELECT rt.restaurant_id, rt.name, rv.review, s.starRating, c.category, rt.lat, rt.lon, rt.naver_map_url\
+            #dataframe_name = ['id', 'Name', 'Review','Review_Point', 'Category', 'Lat', 'Lon', 'url']
+            dataframe_name = ['id', 'Name','Review_Point', 'Category', 'Lat', 'Lon', 'url']
+            mycursor.execute("SELECT rt.restaurant_id, rt.name, s.starRating, c.category, rt.lat, rt.lon, rt.naver_map_url\
                                 FROM restaurant rt\
-                                JOIN review rv ON rt.restaurant_id = rv.restaurant_id\
-                                JOIN score s ON rt.restaurant_id = s.restaurant_id\
-                                JOIN category c ON rt.category_id = c.category_id\
+                                JOIN score s using(restaurant_id)\
+                                JOIN category c using(category_id)\
                                 WHERE rt.restaurant_id IN {} ORDER BY s.starRating DESC".format(tuple(restaurant) if restaurant else (0,)))
             sorted_value = mycursor.fetchall()
             sorted_data = pd.DataFrame(sorted_value, columns = dataframe_name)
-
             # Display the sorted results in the Listbox
-            for i in range(len(sorted_data)-1):
-                if i == 0 :
-                    mycursor.execute("SELECT COUNT(rv.review)\
-                                FROM restaurant rt\
-                                JOIN review rv ON rt.restaurant_id = rv.restaurant_id\
-                                WHERE rt.restaurant_id = {}".format(sorted_data.loc[i, 'id']))
-                    review_num = mycursor.fetchall()
-                    
-                    display_text = f"{sorted_data.loc[i, 'Name']} - Category: {sorted_data.loc[i, 'Category']}, ReviewPoint: {sorted_data.loc[i, 'Review_Point']}, The number of reviews: {review_num[0][0]}"
-                    self.results_listbox.insert(tk.END, display_text)
-                    for j in range(10):
-                        display_text = f"\n Review: {sorted_data.loc[i+j, 'Review']}"
-                        self.results_listbox.insert(tk.END, display_text)
-                
-                elif sorted_data.loc[i, 'Name'] == sorted_data.loc[i-1, 'Name']:
-                    continue
-
-                else :
-                    mycursor.execute("SELECT COUNT(rv.review)\
-                                FROM restaurant rt\
-                                JOIN review rv ON rt.restaurant_id = rv.restaurant_id\
-                                WHERE rt.restaurant_id = {}".format(sorted_data.loc[i, 'id']))
-                    review_num = mycursor.fetchall()
-
-                    display_text = ''
-                    self.results_listbox.insert(tk.END, display_text)
-                    display_text = f"{sorted_data.loc[i, 'Name']} - Category: {sorted_data.loc[i, 'Category']}, ReviewPoint: {sorted_data.loc[i, 'Review_Point']}, The number of reviews: {review_num[0][0]}"
-                    self.results_listbox.insert(tk.END, display_text)
-                    for j in range(10):
-                        display_text = f"\n Review: {sorted_data.loc[i+j, 'Review']}"
-                        self.results_listbox.insert(tk.END, display_text)
-            # self.results_listbox.insert(tk.END, display_text)
-            print(display_text)
+            for i in range(len(sorted_data)):
+                display_text = f"{sorted_data.loc[i, 'Name']} (Category: {sorted_data.loc[i, 'Category']}, \
+                    ReviewPoint: {sorted_data.loc[i, 'Review_Point']})"
+                self.results_listbox.insert(tk.END, display_text)
         else:
             # Show a message if there are no matching results
             self.no_results_label.config(text="No matching results found.")
@@ -375,14 +372,13 @@ class SearchResult(tk.Frame):
     def select_result(self, event):
         # Get the selected result's index
         index = self.results_listbox.curselection()[0]
-        
+        global selected_record
         # Fetch the full record from the filtered_data DataFrame based on the index
         selected_record = pd.DataFrame(sorted_data.loc[index])
         
         # Switch to the Result and display the details of the selected result
         self.controller.show_page("Result") # question
         result_page = self.controller.pages["Result"]
-        print(selected_record)
         result_page.display_details(selected_record)
 
 class Result(tk.Frame):
@@ -391,16 +387,27 @@ class Result(tk.Frame):
         self.controller = controller
         self.url = ''
         
+        self.index2 = 0
+
         self.result_label = tk.Label(self, text="Chosen Result", wraplength=800)
         self.result_label.pack(pady=10)
-        
+        self.results_listbox2 = tk.Listbox(self, height=15, width=100)
+        #for i in range(5) :
+        #   self.results_listbox.insert(tk.END, restaurant[i])
+        self.results_listbox2.pack(pady=10)
+        self.scrollbar2 = tk.Scrollbar(self, command=self.results_listbox2.yview)
+        self.scrollbar2.pack(side="right", fill="y")
+
+        self.results_listbox2.config(yscrollcommand=self.scrollbar2.set)
+        self.results_listbox2.bind("<Double-Button-1>", self.select_result2)
+
         # Button to copy the link to clipboard
-        self.copy_button = tk.Button(self, text="Copy Name and Link to Clipboard", command=self.copy_to_clipboard())
+        self.copy_button = tk.Button(self, text="Copy Name and Link to Clipboard", command=self.copy_to_clipboard)
         self.copy_button.pack(pady=10)
-        
+
         # Create a map centered around Seoul (or you can center it around the user's location)
         self.map = folium.Map(location=[37.5665, 126.9780], zoom_start=10)
-        
+
         # Create a marker for the search result (Seoul's coordinates as a placeholder)
         self.result_marker = folium.Marker([37.5665, 126.9780], popup="Search Result")
         self.result_marker.add_to(self.map)
@@ -424,44 +431,74 @@ class Result(tk.Frame):
         
         self.exit_button = tk.Button(self, text="Exit", command=self.controller.quit)
         self.exit_button.pack()
+    
+    def select_result2(self,event):
+            # Get the selected result's index
+            print("double click")
+            self.index2 = self.results_listbox2.curselection()[0]
+            Result.display_details(self,selected_record)
 
     def display_details(self, record):
         # Display the details of the selected result and show its location on the map.
         # Update the result label with the restaurant's name
         record = record.transpose()
         index = int(record.index[0])
-        self.url = str(record.loc[index, 'url'])
-        print(self.url)
+        restaurantid = int(record.loc[index, 'id'])
+        dataframe_name2 = ['id', 'Name', 'Review','Review_Point', 'Category', 'Lat', 'Lon', 'url']
+        mycursor.execute(f"SELECT rt.restaurant_id, rt.name,r.review, s.starRating, c.category, rt.lat, rt.lon, rt.naver_map_url\
+                            FROM restaurant rt\
+                            JOIN review r using(restaurant_id)\
+                            JOIN score s using(restaurant_id)\
+                            JOIN category c using(category_id)\
+                            WHERE rt.restaurant_id = {restaurantid} ORDER BY s.starRating DESC")
+        sorted_value = mycursor.fetchall()
+        record = pd.DataFrame(sorted_value, columns = dataframe_name2)
+
+        self.url = str(record.loc[0,'url'])
 
         # If English was selected, translate the review
-        review_text = str(record.loc[index, 'Review'])
-        if self.controller.pages["MainPage"].english_option.get() == "Yes":
-            review_text = translate_korean_to_english(review_text)
+        for i in range(len(record)):
+                display_text = f"{record.loc[i, 'Review']} "
+                self.results_listbox2.insert(tk.END, display_text)
+
+        index2 = self.index2
+        print(self.index2)
+        print(index2)
+        review_text = str(record.loc[index2,'Review'])
+        print(review_text)
         
+        if self.controller.pages["MainPage"].english_option.get() == "Yes":
+            marian_ko_en = Translator('ko', 'en') # If you want to see real delay use time.sleep(5)
+            review_text =marian_ko_en.translate([review_text])[0]
+
+
         # Display the (possibly translated) review (you can adjust this to show it in a GUI element)
-        self.result_label.config(text=f"Result Page: {str(record.loc[index, 'Name'])}\
+        self.result_label.config(text=f"Result Page: {str(record.loc[0,'Name'])}\
                                     \n Review: {review_text}")
         
         # Update the map marker to the location of the selected restaurant
-        lat = int(record.loc[index, 'Lat'])
-        lon = int(record.loc[index, 'Lon'])
+        lat = int(record.loc[0,'Lat'])
+        lon = int(record.loc[0,'Lon'])
         self.result_marker.location = [lat, lon]
-        self.result_marker.popup = folium.Popup(record.loc[index, 'Name'])
+        self.result_marker.popup = folium.Popup(record.loc[0,'Name'])
         
         # Center the map around the selected restaurant's location
         self.map.location = [lat, lon]
         
         # Refresh the map by saving it again
         self.map.save(self.map_filepath)
+
+
         
     def copy_to_clipboard(self):
         # Here, for demonstration purposes, I'm copying the first link from "Option 1" in the database. 
         # You can modify this based on your requirements.
         link = self.url
-        print(link)
         self.clipboard_clear() # question
         self.clipboard_append(link)
         self.update()  # This is necessary to finalize the clipboard changes
+    
+
 
 if __name__ == "__main__":
     app = NaverApp()

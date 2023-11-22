@@ -1,7 +1,7 @@
 todo rdbms project:
 - marker for every result in lisbox-> forloop and add.marker, check how to remove marker 
-- implement <enter>
-- copy to clipboard
+- implement <enter> DONE
+- copy to clipboard DONE
 - center map to user location
 # Create a map centered around Seoul (or you can center it around the user's location)
         self.map = folium.Map(location=[37.5665, 126.9780], zoom_start=10)
@@ -13,5 +13,8 @@ todo rdbms project:
 
 
 - write down data cleaning
-- index result
+- index result DONE
 - code that imports database(server:imp/exp)
+- scrollbar
+- index not always working
+- which packages to run the code
