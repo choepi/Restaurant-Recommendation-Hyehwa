@@ -3,6 +3,7 @@
 import requests
 import tkinter as tk
 from tkinter import ttk, filedialog
+from tkinter import messagebox
 import webbrowser
 import folium
 import os
@@ -405,8 +406,14 @@ class Result(tk.Frame):
         self.result_label = tk.Label(self, text="Chosen Result", wraplength=800)
         self.result_label.pack(pady=10)
         self.results_listbox2 = tk.Listbox(self, height=15, width=100)
-        #for i in range(5) :
-        #   self.results_listbox.insert(tk.END, restaurant[i])
+
+        self.review_label = tk.Label(self,text="please insert new review!")
+        self.review_label.pack(pady=10)
+        self.reivewEntry = tk.Entry(self)
+        self.reivewEntry.pack(pady=5)
+        self.review_button = tk.Button(self,text="update",command=self.insert_review)
+        self.review_button.pack(pady=3)
+
         self.results_listbox2.pack(pady=10)
         self.scrollbar2 = tk.Scrollbar(self, command=self.results_listbox2.yview)
         self.scrollbar2.pack(side="right", fill="y")
@@ -445,6 +452,16 @@ class Result(tk.Frame):
         self.exit_button = tk.Button(self, text="Exit", command=self.controller.quit)
         self.exit_button.pack()
     
+    def insert_review(self):
+            new_review = self.reivewEntry.get()
+            result = (real_record.id[0],new_review)
+            mycursor.execute(f"INSERT INTO review VALUES {result}") 
+            mydb.commit() # make the change permanent
+            messagebox.showinfo("Confirmation", "Your review has been updated.")
+
+            self.results_listbox2.delete(0, tk.END) # delete result for updating new review
+            self.display_details(selected_record) # print new result with inserted review
+
     def select_result2(self,event):
             # Get the selected result's index
             print("double click")
@@ -452,48 +469,51 @@ class Result(tk.Frame):
             Result.display_details(self,selected_record)
 
     def display_details(self, record):
-        # Display the details of the selected result and show its location on the map.
+         # Display the details of the selected result and show its location on the map.
         # Update the result label with the restaurant's name
-        record = record.transpose()
-        index = int(record.index[0])
-        restaurantid = int(record.loc[index, 'id'])
+        global real_record
+        real_record = record.transpose()
+        index = int(real_record.index[0])
+        restaurantid = int(real_record.loc[index, 'id'])
+        mydb, mycursor = connectDB('project')
         dataframe_name2 = ['id', 'Name', 'Review','Review_Point', 'Category', 'Lat', 'Lon', 'url']
-        mycursor.execute(f"SELECT rt.restaurant_id, rt.name,r.review, s.starRating, c.category, rt.lat, rt.lon, rt.naver_map_url\
+        mycursor.execute(f"SELECT rt.restaurant_id, rt.name, r.review, s.starRating, c.category, rt.lat, rt.lon, rt.naver_map_url\
                             FROM restaurant rt\
                             JOIN review r using(restaurant_id)\
                             JOIN score s using(restaurant_id)\
                             JOIN category c using(category_id)\
                             WHERE rt.restaurant_id = {restaurantid} ORDER BY s.starRating DESC")
         sorted_value = mycursor.fetchall()
-        record = pd.DataFrame(sorted_value, columns = dataframe_name2)
+        real_record = pd.DataFrame(sorted_value, columns = dataframe_name2)
 
-        self.url = str(record.loc[0,'url'])
+        self.url = str(real_record.loc[0,'url'])
 
         # If English was selected, translate the review
-        for i in range(len(record)):
-                display_text = f"{record.loc[i, 'Review']} "
+        for i in range(len(real_record)):
+                display_text = f"{real_record.loc[i, 'Review']} "
                 self.results_listbox2.insert(tk.END, display_text)
 
         index2 = self.index2
         print(self.index2)
         print(index2)
-        review_text = str(record.loc[index2,'Review'])
+        review_text = str(real_record.loc[index2,'Review'])
         print(review_text)
         
         if self.controller.pages["MainPage"].english_option.get() == "Yes":
-            marian_ko_en = Translator('ko', 'en') # If you want to see real delay use time.sleep(5)
-            review_text =marian_ko_en.translate([review_text])[0]
+            #marian_ko_en = Translator('ko', 'en') # If you want to see real delay use time.sleep(5)
+            #_text =reviewmarian_ko_en.translate([review_text])[0]
+            text =translate_korean_to_english(review_text)
 
 
         # Display the (possibly translated) review (you can adjust this to show it in a GUI element)
-        self.result_label.config(text=f"Result Page: {str(record.loc[0,'Name'])}\
+        self.result_label.config(text=f"Result Page: {str(real_record.loc[0,'Name'])}\
                                     \n Review: {review_text}")
         
         # Update the map marker to the location of the selected restaurant
-        lat = int(record.loc[0,'Lat'])
-        lon = int(record.loc[0,'Lon'])
+        lat = int(real_record.loc[0,'Lat'])
+        lon = int(real_record.loc[0,'Lon'])
         self.result_marker.location = [lat, lon]
-        self.result_marker.popup = folium.Popup(record.loc[0,'Name'])
+        self.result_marker.popup = folium.Popup(real_record.loc[0,'Name'])
         
         # Center the map around the selected restaurant's location
         self.map.location = [lat, lon]
