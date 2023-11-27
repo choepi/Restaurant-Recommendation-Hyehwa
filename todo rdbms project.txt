@@ -10,11 +10,9 @@ todo rdbms project:
         self.result_marker = folium.Marker([37.5665, 126.9780], popup="Search Result")
         self.result_marker.add_to(self.map)
 
-
-
-- write down data cleaning
 - index result DONE
 - code that imports database(server:imp/exp)
 - scrollbar
-- index not always working
-- which packages to run the code
+- index not always working DONE
+- which packages to run the code!
+- map wrong latlon?

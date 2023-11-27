@@ -308,25 +308,18 @@ def starpoint(restaurant_id, category_id):
                 WHERE r.restaurant_id = {}""".format(str(restaurant_id))
     mycursor.execute(query)
     point = mycursor.fetchone()
-    print(restaurant_id)
-    print(point)
 
     if point == ("",):
-        point = 0
-    else :
-        point = float(point[0])
-
-    if point == 0 :
         text = "None"
     else :
+        point = float(point[0])
         category_point = category_starpoint.loc[category_starpoint['category_id'] == category_id]['point_average']
-        print(category_point)
         if point > float(category_point) :
             text = 'Low'
         elif point == float(category_point) :
             text = 'Same'
         else :
-            text = 'High'
+            text = 'High'        
     return(text)
 
 
@@ -488,7 +481,7 @@ class Result(tk.Frame):
 
         self.url = str(real_record.loc[0,'url'])
 
-        # If English was selected, translate the review
+        self.results_listbox2.delete(0, tk.END)
         for i in range(len(real_record)):
                 display_text = f"{real_record.loc[i, 'Review']} "
                 self.results_listbox2.insert(tk.END, display_text)
@@ -496,16 +489,18 @@ class Result(tk.Frame):
         index2 = self.index2
         print(self.index2)
         print(index2)
+        print(real_record)
         review_text = str(real_record.loc[index2,'Review'])
         print(review_text)
         
         if self.controller.pages["MainPage"].english_option.get() == "Yes":
-            #marian_ko_en = Translator('ko', 'en') # If you want to see real delay use time.sleep(5)
-            #_text =reviewmarian_ko_en.translate([review_text])[0]
-            text =translate_korean_to_english(review_text)
+            marian_ko_en = Translator('ko', 'en') # If you want to see real delay use time.sleep(5)
+            text =marian_ko_en.translate([review_text])[0] #machine translation
+            #text =translate_korean_to_english(review_text) #google translation
 
 
         # Display the (possibly translated) review (you can adjust this to show it in a GUI element)
+        
         self.result_label.config(text=f"Result Page: {str(real_record.loc[0,'Name'])}\
                                     \n Review: {review_text}")
         
