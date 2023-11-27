@@ -1,0 +1,6 @@
+folium==0.14.0
+geocoder==1.38.1
+mysql-connector-python==8.2.0
+pandas==2.1.2
+numpy==1.26.1
+transformers==4.34.1

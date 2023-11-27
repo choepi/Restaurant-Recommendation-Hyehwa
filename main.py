@@ -146,43 +146,40 @@ class MainPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        
-        self.title_label = tk.Label(self, text="Main Page: Title")
-        self.title_label.pack(pady=10)
-        
-        # Create a TkinterMapView widget
-        MAP_WIDTH = 500  # Adjusted width
-        MAP_HEIGHT = 400  # Adjusted height
-        script_directory = os.path.dirname(os.path.abspath(__file__))
-        database_path = os.path.join(script_directory, "offline_tiles_hye.db")
-        self.map_widget = TkinterMapView(width=MAP_WIDTH, height=MAP_HEIGHT, corner_radius=1,database_path=database_path, max_zoom=15)
-        self.map_widget.set_address("Hyehwa Station, Seoul, South Korea")
-        self.map_widget.pack(fill="both", expand=True, padx=10, pady=10)
-        # Multiple-choice radio buttons for filtering
-        self.filter_label = tk.Label(self, text="Filter by Category:")
-        self.filter_label.pack(pady=5)
-        
+        self.controller.resizable(False, False)
+        # Create the upper frame
+        upper_frame = tk.Frame(self)
+        upper_frame.place(relx=0.5, rely=0,relwidth=1,relheight=0.6, anchor="n")
 
-        # Search input
-        self.search_label = tk.Label(self, text="Enter Lat Lon")
-        self.search_label.pack(pady=5)
+        # Create the lower frame
+        lower_frame = tk.Frame(self)
+        lower_frame.place(relx=0.5, rely=0.6,relwidth=1,relheight=0.4, anchor="n")
 
-        # Create a Text widget to display messages
-        self.message_text = tk.Text(self, height=1, width=50)
-        self.message_text.config(state="disabled")
-        self.message_text.pack_forget()
-        
-        self.search_entry = tk.Entry(self)
+        # Widgets for the upper frame
+        self.title_label = tk.Label(upper_frame, text="Welcome to NaverFood!", font=("Arial", 16))
+        self.title_label.place(relx=0.5, rely=0.1, anchor="center")
+
+        #lat lon search
+        self.search_label = tk.Label(upper_frame, text="Enter Lat Lon")
+        self.search_label.place(relx=0.2, rely=0.2, anchor="center")
+        self.search_entry = tk.Entry(upper_frame)
         current_location = geocoder.ip('me').latlng
         current_location = ' '.join(map(str, current_location))
         self.search_entry.insert(0, current_location)
         self.search_entry.bind("<Return>", lambda event: self.perform_search())
-        self.search_entry.pack(pady=5)
+        self.search_entry.place(relx=0.4, rely=0.2, anchor="center")
+
+        self.message_text = tk.Text(upper_frame, height=1, width=50)
+        self.message_text.config(state="disabled")
+        self.message_text.pack_forget()
+
+        self.filter_label = tk.Label(upper_frame, text="Filter by Category:")
+        self.filter_label.place(relx=0.5, rely=0.3, anchor="center")
 
         self.cat_num = 0
         # Create a new frame for the category radio buttons
-        category_frame = tk.Frame(self)
-        category_frame.pack(pady=10)
+        category_frame = tk.Frame(upper_frame)
+        category_frame.place(relx=0.5, rely=0.5, anchor="center")
         # Initialize the selected_category variable
         self.selected_category = tk.StringVar()
         self.selected_category.set('None')
@@ -219,27 +216,35 @@ class MainPage(tk.Frame):
         # Define the number of categories per row
         categories_per_row = 5
         category_search()
+        
         for index, category in enumerate(categories):
             radiobutton = tk.Radiobutton(category_frame, text=category, variable= str(self.selected_category), value=category, command = category_search) #quesition
             row_idx = index // categories_per_row
             col_idx = index % categories_per_row
             radiobutton.grid(row=row_idx, column=col_idx, sticky="w", padx=5, pady=5)
-        
-        
-        # Radio buttons for English and Kids options
-        self.english_label = tk.Label(self, text="English:")
-        self.english_label.pack(pady=5)
-        self.english_option = tk.StringVar(value="No")
-        for option in ["Yes", "No"]:
-            radiobutton = tk.Radiobutton(self, text=option, variable=self.english_option, value=option)
-            radiobutton.pack(anchor="w")
+
+
+        # English Option - using a checkbutton instead of radiobutton
+        self.english_label = tk.Label(upper_frame, text="English:")
+        self.english_label.place(relx=0.2, rely=0.8, anchor="w")
+
+        # Use StringVar for a Checkbutton
+        self.english_option = tk.StringVar(value="No")  # "No" for not checked, "Yes" for checked
+        self.english_checkbutton = tk.Checkbutton(upper_frame, text="Yes", variable=self.english_option, onvalue="Yes", offvalue="No")
+        self.english_checkbutton.place(relx=0.3, rely=0.8, anchor="w")
         
         # Search button
-        self.search_button = tk.Button(self, text="Search", command=self.perform_search)
-        self.search_button.pack(pady=10)
+        self.search_button = tk.Button(upper_frame, text="Search", command=self.perform_search)
+        self.search_button.place(relx=0.5, rely=0.9, anchor="center")
+
+        # Map widget in the lower frame
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+        database_path = os.path.join(script_directory, "offline_tiles_hye.db")
+        self.map_widget = TkinterMapView(lower_frame, corner_radius=1, database_path=database_path, max_zoom=15)
+        self.map_widget.set_address("Hyehwa Station, Seoul, South Korea")
+        self.map_widget.pack(fill="both", expand=True)
+
         
-        self.exit_button = tk.Button(self, text="Exit", command=self.controller.quit)
-        self.exit_button.pack()
 
     def perform_search(self):
         # Fetch the clicked location from the map
@@ -251,8 +256,8 @@ class MainPage(tk.Frame):
         else:
             try:
                 x = input_text.split(' ')
-                lat = x[0]
-                lon = x[1]
+                lat = float(x[0])
+                lon = float(x[1])
                 message = f"selected:Lat: {lat}, Lon: {lon}"
 
             except ValueError:
@@ -260,9 +265,10 @@ class MainPage(tk.Frame):
                 message = "Invalid input format. Please enter Lat and Lon separated by a space."
 
         # Show the Text widget and insert the message
-        self.message_text.delete(1.0, tk.END)
-        self.message_text.pack()
         self.message_text.config(state="normal")
+        self.message_text.delete(1.0, tk.END)
+        self.message_text.place(relx=0.5, rely=0.7, anchor="center")
+        
         self.message_text.insert(tk.END, message)
         self.message_text.config(state="disabled")
         
@@ -337,9 +343,9 @@ class SearchResult(tk.Frame):
         self.controller = controller
 
         self.no_results_label = tk.Label(self, text="", fg="red")
-        self.no_results_label.pack()
+        self.no_results_label.place(relx=0.5, rely=0.1, anchor="center")
 
-        self.search_label = tk.Label(self, text="Search Results:")
+        self.search_label = tk.Label(self, text="These are the 5 closest Restaurants from your Search:")
         self.search_label.pack(pady=10)
 
         self.results_listbox = tk.Listbox(self, height=15, width=100)
@@ -495,6 +501,7 @@ class Result(tk.Frame):
 
         index2 = self.index2
         review_text = str(real_record.loc[index2,'Review'])
+        print(str(real_record.loc[index2,'Lat']),real_record.loc[index2,'Lon'])
         
         if self.controller.pages["MainPage"].english_option.get() == "Yes":
             marian_ko_en = Translator('ko', 'en') # If you want to see real delay use time.sleep(5)
