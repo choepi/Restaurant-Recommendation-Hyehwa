@@ -14,7 +14,6 @@ import numpy as np
 import mysql.connector
 from transformers import MarianMTModel, MarianTokenizer
 from typing import Sequence
-import threading
 
 def connectDB(db_use):
     mydb = mysql.connector.connect(
@@ -60,7 +59,7 @@ def calculator_distance(para) :
 
     catintup = [int(str(i).replace('(', '').replace(')', '').replace(',', '')) for i in catintup]
     df = pd.DataFrame({
-    'id': range(len(location)),
+    'id': range(1,len(location)+1),
     'distance': range(len(location)),
     'category': catintup}) 
 
@@ -289,7 +288,47 @@ class MainPage(tk.Frame):
                 if i == cleaned_str:
                     self.cat_num = self.categories.index(i)
             search_page.perform_search(lat,lon, self.cat_num, english)
-    
+
+
+dataframe_name = ['category_id', 'point_average']
+mycursor.execute("""SELECT c.category_id, avg(s.starRating) FROM score s
+                    JOIN restaurant r ON r.restaurant_id = s.restaurant_id
+                    JOIN category c ON r.category_id = c.category_id 
+                    WHERE s.starRating != 0 
+                    GROUP BY c.category_id
+                    ORDER BY c.category_id""")
+point_average = mycursor.fetchall()
+category_starpoint = pd.DataFrame(point_average, columns = dataframe_name)
+
+# calculate starpoint
+def starpoint(restaurant_id, category_id):
+    query = """SELECT s.starRating FROM score s
+                JOIN restaurant r ON r.restaurant_id = s.restaurant_id
+                WHERE r.restaurant_id = {}""".format(str(restaurant_id))
+    mycursor.execute(query)
+    point = mycursor.fetchone()
+    print(restaurant_id)
+    print(point)
+
+    if point == ("",):
+        point = 0
+    else :
+        point = float(point[0])
+
+    if point == 0 :
+        text = "None"
+    else :
+        category_point = category_starpoint.loc[category_starpoint['category_id'] == category_id]['point_average']
+        print(category_point)
+        if point > float(category_point) :
+            text = 'Low'
+        elif point == float(category_point) :
+            text = 'Same'
+        else :
+            text = 'High'
+    return(text)
+
+
 class SearchResult(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -314,56 +353,30 @@ class SearchResult(tk.Frame):
         self.selected_record = None
 
     def perform_search(self, lat, lon, category, english): # question
+        self.no_results_label.config(text="")
         self.results_listbox.delete(0, tk.END)
         user_location = (float(lat), float(lon))
 
         restaurant_list = calculator_distance(user_location)
-
-        if category == 0 :
-            query = """
-                SELECT restaurant_id
-                FROM restaurant
-                WHERE restaurant_id IN {}
-                AND category_id IN {}
-                """.format(tuple(restaurant_list) if restaurant_list else (0,), 
-                tuple(category_subquery) if category_subquery else (0,))
-        else :
-            cs = category_subquery[0]
-            query = """
-                SELECT restaurant_id
-                FROM restaurant
-                WHERE restaurant_id IN {}
-                AND category_id = {}
-                """.format(tuple(restaurant_list) if restaurant_list else (0,), 
-                cs if category_subquery else (0,))
-        mycursor.execute(query)
-        
-        restaurnat_Result = mycursor.fetchall()
-        restaurant_result_list = list(restaurnat_Result)
-        restaurant = []
-        for i in range(len(restaurant_result_list)) :
-            val = str(restaurant_result_list[i]).replace('(', '').replace(')', '').replace(',', '')
-            restaurant.append(int(val))
-
-
+        restaurant=restaurant_list
         if not len(restaurant) == 0 :
             global sorted_data
             # Calculate distances between the clicked location and each restaurant
             # (You may need to adjust this part to access the correct database)
             sorted_data = []
-            #dataframe_name = ['id', 'Name', 'Review','Review_Point', 'Category', 'Lat', 'Lon', 'url']
-            dataframe_name = ['id', 'Name','Review_Point', 'Category', 'Lat', 'Lon', 'url']
-            mycursor.execute("SELECT rt.restaurant_id, rt.name, s.starRating, c.category, rt.lat, rt.lon, rt.naver_map_url\
+            dataframe_name = ['id', 'Name','Review_Point', 'Category_id', 'Category', 'Lat', 'Lon', 'url']
+            mycursor.execute("SELECT rt.restaurant_id, rt.name, s.starRating, c.category_id, c.category, rt.lat, rt.lon, rt.naver_map_url\
                                 FROM restaurant rt\
                                 JOIN score s using(restaurant_id)\
                                 JOIN category c using(category_id)\
                                 WHERE rt.restaurant_id IN {} ORDER BY s.starRating DESC".format(tuple(restaurant) if restaurant else (0,)))
             sorted_value = mycursor.fetchall()
             sorted_data = pd.DataFrame(sorted_value, columns = dataframe_name)
+
             # Display the sorted results in the Listbox
             for i in range(len(sorted_data)):
                 display_text = f"{sorted_data.loc[i, 'Name']} (Category: {sorted_data.loc[i, 'Category']}, \
-                    ReviewPoint: {sorted_data.loc[i, 'Review_Point']})"
+                    ReviewPoint: {sorted_data.loc[i, 'Review_Point']}, {starpoint(sorted_data.loc[i, 'id'], sorted_data.loc[i, 'Category_id'])})"
                 self.results_listbox.insert(tk.END, display_text)
         else:
             # Show a message if there are no matching results
