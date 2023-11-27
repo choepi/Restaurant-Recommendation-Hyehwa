@@ -97,7 +97,7 @@ def translate_korean_to_english(korean_text):
 class NaverApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
-        self.geometry("1000x800")
+        self.geometry("800x600")
         self.title("NaverFood")
         # self.iconbitmap("C:/Users/Admin/OneDrive/바탕 화면/RDBMS_Project/naverfood.ico")
         
@@ -311,16 +311,24 @@ def starpoint(restaurant_id, category_id):
 
     if point == ("",):
         text = "None"
-    else :
+    else:
         point = float(point[0])
-        category_point = category_starpoint.loc[category_starpoint['category_id'] == category_id]['point_average']
-        if point > float(category_point) :
-            text = 'Low'
-        elif point == float(category_point) :
-            text = 'Same'
-        else :
-            text = 'High'        
-    return(text)
+        category_point_series = category_starpoint.loc[category_starpoint['category_id'] == category_id]['point_average']
+        
+        # Check if the Series is not empty before accessing its element
+        if not category_point_series.empty:
+            category_point = float(category_point_series.iloc[0])
+            if point > category_point:
+                text = 'Low'
+            elif point == category_point:
+                text = 'Same'
+            else:
+                text = 'High'
+        else:
+            text = 'Data Not Found'
+        
+    return text
+
 
 
 class SearchResult(tk.Frame):
@@ -457,7 +465,6 @@ class Result(tk.Frame):
 
     def select_result2(self,event):
             # Get the selected result's index
-            print("double click")
             self.index2 = self.results_listbox2.curselection()[0]
             Result.display_details(self,selected_record)
 
@@ -487,15 +494,11 @@ class Result(tk.Frame):
                 self.results_listbox2.insert(tk.END, display_text)
 
         index2 = self.index2
-        print(self.index2)
-        print(index2)
-        print(real_record)
         review_text = str(real_record.loc[index2,'Review'])
-        print(review_text)
         
         if self.controller.pages["MainPage"].english_option.get() == "Yes":
             marian_ko_en = Translator('ko', 'en') # If you want to see real delay use time.sleep(5)
-            text =marian_ko_en.translate([review_text])[0] #machine translation
+            review_text = marian_ko_en.translate([review_text])[0] #machine translation
             #text =translate_korean_to_english(review_text) #google translation
 
 
