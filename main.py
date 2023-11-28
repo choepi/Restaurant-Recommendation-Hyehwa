@@ -147,6 +147,7 @@ class MainPage(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         self.controller.resizable(False, False)
+        
         # Create the upper frame
         upper_frame = tk.Frame(self)
         upper_frame.place(relx=0.5, rely=0,relwidth=1,relheight=0.6, anchor="n")
@@ -263,7 +264,7 @@ class MainPage(tk.Frame):
             except ValueError:
                 self.go = 0
                 message = "Invalid input format. Please enter Lat and Lon separated by a space."
-
+        
         # Show the Text widget and insert the message
         self.message_text.config(state="normal")
         self.message_text.delete(1.0, tk.END)
@@ -345,24 +346,24 @@ class SearchResult(tk.Frame):
         self.no_results_label = tk.Label(self, text="", fg="red")
         self.no_results_label.place(relx=0.5, rely=0.1, anchor="center")
 
-        self.search_label = tk.Label(self, text="These are the 5 closest Restaurants from your Search:")
-        self.search_label.pack(pady=10)
+        self.search_label = tk.Label(self, text="These are the 5 closest Restaurants from your Search:", font=("Arial", 16))
+        self.search_label.place(relx=0.5, rely=0.1, anchor="center")
 
-        self.results_listbox = tk.Listbox(self, height=15, width=100)
-        #for i in range(5) :
-        #   self.results_listbox.insert(tk.END, restaurant[i])
-        self.results_listbox.pack(pady=10)
+
+        headers = ['Name', 'Category', 'Review Point', 'Rating']
+        self.tree = ttk.Treeview(self, columns=headers, show='headings')
+        # Define the column headers
+        for col in headers:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=100,stretch=False)  # Adjust the width as needed
         
-        self.scrollbar = tk.Scrollbar(self, command=self.results_listbox.yview)
-        self.scrollbar.pack(side="right", fill="y")
-        
-        self.results_listbox.config(yscrollcommand=self.scrollbar.set)
-        self.results_listbox.bind("<Double-Button-1>", self.select_result)
+        self.tree.place(relx=0.5, rely=0.4, anchor="center")
+        self.tree.bind("<Double-Button-1>", self.select_result)
         self.selected_record = None
 
     def perform_search(self, lat, lon, category, english): # question
         self.no_results_label.config(text="")
-        self.results_listbox.delete(0, tk.END)
+        self.tree.delete(*self.tree.get_children())
         user_location = (float(lat), float(lon))
 
         restaurant_list = calculator_distance(user_location)
@@ -381,18 +382,20 @@ class SearchResult(tk.Frame):
             sorted_value = mycursor.fetchall()
             sorted_data = pd.DataFrame(sorted_value, columns = dataframe_name)
 
-            # Display the sorted results in the Listbox
-            for i in range(len(sorted_data)):
-                display_text = f"{sorted_data.loc[i, 'Name']} (Category: {sorted_data.loc[i, 'Category']}, \
-                    ReviewPoint: {sorted_data.loc[i, 'Review_Point']}, {starpoint(sorted_data.loc[i, 'id'], sorted_data.loc[i, 'Category_id'])})"
-                self.results_listbox.insert(tk.END, display_text)
+            rating = starpoint(sorted_data.loc[0, 'id'], sorted_data.loc[0, 'Category_id'])
+            sorted_data['rating'] = rating
+            datashow = sorted_data[['Name', 'Category', 'Review_Point','rating']]
+            for i in range(len(datashow)):
+                data = datashow.loc[i].tolist()
+                self.tree.insert('', 'end', values=data)
         else:
             # Show a message if there are no matching results
             self.no_results_label.config(text="No matching results found.")
 
     def select_result(self, event):
         # Get the selected result's index
-        index = self.results_listbox.curselection()[0]
+        selected_iid = self.tree.selection()[0]
+        index = self.tree.index(selected_iid)
         global selected_record
         # Fetch the full record from the filtered_data DataFrame based on the index
         selected_record = pd.DataFrame(sorted_data.loc[index])
@@ -409,35 +412,42 @@ class Result(tk.Frame):
         self.url = ''
         
         self.index2 = 0
-
-        self.result_label = tk.Label(self, text="Chosen Result", wraplength=800)
+        upper_frame = tk.Frame(self)
+        upper_frame.place(relx=0.5, rely=0,relwidth=0.8,relheight=0.4, anchor="n")
+        self.title_label = tk.Label(upper_frame, text="See the Reviews for the chosen Restaurant", font=("Arial", 16))
+        self.title_label.pack(pady=10)
+        self.result_label = tk.Label(upper_frame, text="", wraplength=600,width=300,bg='white')
         self.result_label.pack(pady=10)
-        self.results_listbox2 = tk.Listbox(self, height=15, width=100)
 
-        self.review_label = tk.Label(self,text="please insert new review!")
+        middle_frame1 = tk.Frame(self)
+        middle_frame1.place(relx=0.0, rely=0.4,relwidth=.5,relheight=0.6, anchor="nw")
+        headers = ["Review"]
+        self.tree2 = ttk.Treeview(middle_frame1, columns=headers, show='headings')
+        # Define the column headers
+        for col in headers:
+            self.tree2.heading(col, text=col)
+            self.tree2.column(col, width=300,stretch=False)  # Adjust the width as needed
+        
+        self.tree2.pack(pady=10)
+        self.tree2.bind("<Double-Button-1>", self.select_result2)
+
+        middle_frame2 = tk.Frame(self)
+        middle_frame2.place(relx=0.5, rely=0.4,relwidth=.5,relheight=0.6, anchor="nw")
+        self.review_label = tk.Label(middle_frame2,text="please insert new review!")
         self.review_label.pack(pady=10)
-        self.reivewEntry = tk.Entry(self)
+        self.reivewEntry = tk.Entry(middle_frame2)
         self.reivewEntry.pack(pady=5)
-        self.review_button = tk.Button(self,text="update",command=self.insert_review)
+        self.review_button = tk.Button(middle_frame2,text="update",command=self.insert_review)
         self.review_button.pack(pady=3)
 
-        self.results_listbox2.pack(pady=10)
-        self.scrollbar2 = tk.Scrollbar(self, command=self.results_listbox2.yview)
-        self.scrollbar2.pack(side="right", fill="y")
-
-        self.results_listbox2.config(yscrollcommand=self.scrollbar2.set)
-        self.results_listbox2.bind("<Double-Button-1>", self.select_result2)
-
         # Button to copy the link to clipboard
-        self.copy_button = tk.Button(self, text="Copy Name and Link to Clipboard", command=self.copy_to_clipboard)
+        self.copy_button = tk.Button(middle_frame2, text="Copy Link to Restaurant", command=self.copy_to_clipboard)
         self.copy_button.pack(pady=10)
 
         # Create a map centered around Seoul (or you can center it around the user's location)
         self.map = folium.Map(location=[37.5665, 126.9780], zoom_start=10)
 
-        # Create a marker for the search result (Seoul's coordinates as a placeholder)
-        self.result_marker = folium.Marker([37.5665, 126.9780], popup="Search Result")
-        self.result_marker.add_to(self.map)
+       
         
         # Get current location and add a marker for it
         current_location = geocoder.ip('me').latlng
@@ -445,7 +455,7 @@ class Result(tk.Frame):
             folium.Marker(
                 location=current_location,
                 popup="You are here!",
-                icon=folium.Icon(color="green")
+                icon=folium.Icon(color="blue")
             ).add_to(self.map)
         
         # Save the map to an HTML file
@@ -453,11 +463,15 @@ class Result(tk.Frame):
         self.map.save(self.map_filepath)
         
         # Button to open the map in a browser
-        self.view_map_button = tk.Button(self, text="View Map", command=lambda: webbrowser.open('file://' + os.path.realpath(self.map_filepath)))
+        self.view_map_button = tk.Button(middle_frame2, text="View Map", command=lambda: webbrowser.open('file://' + os.path.realpath(self.map_filepath)))
         self.view_map_button.pack(pady=10)
         
-        self.exit_button = tk.Button(self, text="Exit", command=self.controller.quit)
+        self.exit_button = tk.Button(middle_frame2, text="Exit", command=self.controller.quit)
         self.exit_button.pack()
+
+        self.result_marker = folium.Marker([37.5665, 126.9780], popup="Your Restaurant", icon=folium.Icon(color="green"))
+        self.result_marker.add_to(self.map)
+        
     
     def insert_review(self):
             new_review = self.reivewEntry.get()
@@ -466,12 +480,13 @@ class Result(tk.Frame):
             mydb.commit() # make the change permanent
             messagebox.showinfo("Confirmation", "Your review has been updated.")
 
-            self.results_listbox2.delete(0, tk.END) # delete result for updating new review
+            self.tree2.delete(*self.tree2.get_children()) # delete result for updating new review
             self.display_details(selected_record) # print new result with inserted review
 
     def select_result2(self,event):
             # Get the selected result's index
-            self.index2 = self.results_listbox2.curselection()[0]
+            selected_iid = self.tree2.selection()[0]
+            self.index2 = self.tree2.index(selected_iid)
             Result.display_details(self,selected_record)
 
     def display_details(self, record):
@@ -494,14 +509,14 @@ class Result(tk.Frame):
 
         self.url = str(real_record.loc[0,'url'])
 
-        self.results_listbox2.delete(0, tk.END)
-        for i in range(len(real_record)):
-                display_text = f"{real_record.loc[i, 'Review']} "
-                self.results_listbox2.insert(tk.END, display_text)
+        self.tree2.delete(*self.tree2.get_children())
+        showdat = real_record['Review']
+        for i in range(len(showdat)):
+            data = showdat.iloc[i]  # Get the string data directly, assuming it's a pandas Series
+            self.tree2.insert('', 'end', values=(data,))
 
         index2 = self.index2
         review_text = str(real_record.loc[index2,'Review'])
-        print(str(real_record.loc[index2,'Lat']),real_record.loc[index2,'Lon'])
         
         if self.controller.pages["MainPage"].english_option.get() == "Yes":
             marian_ko_en = Translator('ko', 'en') # If you want to see real delay use time.sleep(5)
@@ -510,19 +525,20 @@ class Result(tk.Frame):
 
 
         # Display the (possibly translated) review (you can adjust this to show it in a GUI element)
-        
-        self.result_label.config(text=f"Result Page: {str(real_record.loc[0,'Name'])}\
+        self.result_label.config(text=f"Restaurant Name: {str(real_record.loc[0,'Name'])}\
                                     \n Review: {review_text}")
         
         # Update the map marker to the location of the selected restaurant
-        lat = int(real_record.loc[0,'Lat'])
-        lon = int(real_record.loc[0,'Lon'])
+        
+
+        lat = float(real_record.loc[0,'Lat'])
+        lon = float(real_record.loc[0,'Lon'])
+        loc = [lat,lon]
         self.result_marker.location = [lat, lon]
         self.result_marker.popup = folium.Popup(real_record.loc[0,'Name'])
         
         # Center the map around the selected restaurant's location
         self.map.location = [lat, lon]
-        
         # Refresh the map by saving it again
         self.map.save(self.map_filepath)
 
