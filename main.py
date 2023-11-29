@@ -68,7 +68,7 @@ def calculator_distance(para) :
     #filter after category, where category in category_subquery
     df = df[df['category'].isin(category_subquery)]
     # Sort by distance and get top 5
-    df = df.sort_values(by='distance').head(5)
+    df = df.sort_values(by='distance').head(15)
     restaurant_list = df['id'].tolist()
     return restaurant_list
 
