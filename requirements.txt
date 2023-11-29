@@ -5,3 +5,5 @@ pandas==2.1.2
 numpy==1.26.1
 transformers==4.34.1
 torch==2.1.1
+sentencepiece==0.1.99
+sacremoses==0.1.1
