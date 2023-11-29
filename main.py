@@ -433,7 +433,7 @@ class Result(tk.Frame):
 
         middle_frame2 = tk.Frame(self)
         middle_frame2.place(relx=0.5, rely=0.4,relwidth=.5,relheight=0.6, anchor="nw")
-        self.review_label = tk.Label(middle_frame2,text="please insert new review!")
+        self.review_label = tk.Label(middle_frame2,text="Please insert new review!")
         self.review_label.pack(pady=10)
         self.reivewEntry = tk.Entry(middle_frame2)
         self.reivewEntry.pack(pady=5)
