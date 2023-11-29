@@ -34,7 +34,7 @@ CREATE TABLE `category` (
 
 LOCK TABLES `category` WRITE;
 /*!40000 ALTER TABLE `category` DISABLE KEYS */;
-INSERT INTO `category` VALUES (1,'Korean'),(2,'cafe_dessert'),(3,'pub'),(4,'Western'),(5,'Japanese'),(6,'Chinese'),(7,'Asian'),(8,'salad'),(1,'Korean'),(2,'Cafe_Dessert'),(3,'Pub'),(4,'Western'),(5,'Japanese'),(6,'Chinese'),(7,'Asian'),(8,'Salad');
+INSERT INTO `category` VALUES (1,'Korean'),(2,'Cafe_Dessert'),(3,'Pub'),(4,'Western'),(5,'Japanese'),(6,'Chinese'),(7,'Asian'),(8,'Salad');
 /*!40000 ALTER TABLE `category` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -47,4 +47,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-11-29 12:44:20
+-- Dump completed on 2023-11-29 13:04:36

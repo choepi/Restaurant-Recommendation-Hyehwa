@@ -241,7 +241,7 @@ class MainPage(tk.Frame):
         # Map widget in the lower frame
         script_directory = os.path.dirname(os.path.abspath(__file__))
         database_path = os.path.join(script_directory, "offline_tiles_hye.db")
-        self.map_widget = TkinterMapView(lower_frame, corner_radius=1, database_path=database_path, max_zoom=15)
+        self.map_widget = TkinterMapView(lower_frame, corner_radius=1, database_path=database_path, max_zoom=20)
         self.map_widget.set_address("Hyehwa Station, Seoul, South Korea")
         self.map_widget.pack(fill="both", expand=True)
 
@@ -325,11 +325,11 @@ def starpoint(restaurant_id, category_id):
         # Check if the Series is not empty before accessing its element
         if not category_point_series.empty:
             category_point = float(category_point_series.iloc[0])
-            if point > category_point:
+            if point < category_point:
                 text = 'Low'
             elif point == category_point:
                 text = 'Same'
-            else:
+            elif point > category_point:
                 text = 'High'
         else:
             text = 'Data Not Found'
@@ -382,8 +382,9 @@ class SearchResult(tk.Frame):
             sorted_value = mycursor.fetchall()
             sorted_data = pd.DataFrame(sorted_value, columns = dataframe_name)
 
-            rating = starpoint(sorted_data.loc[0, 'id'], sorted_data.loc[0, 'Category_id'])
-            sorted_data['rating'] = rating
+            for i in range(5):
+                rating = starpoint(sorted_data.loc[i, 'id'], sorted_data.loc[i, 'Category_id'])
+                sorted_data.loc[i, 'rating'] = rating
             datashow = sorted_data[['Name', 'Category', 'Review_Point','rating']]
             for i in range(len(datashow)):
                 data = datashow.loc[i].tolist()
@@ -437,7 +438,7 @@ class Result(tk.Frame):
         self.review_label.pack(pady=10)
         self.reivewEntry = tk.Entry(middle_frame2)
         self.reivewEntry.pack(pady=5)
-        self.review_button = tk.Button(middle_frame2,text="update",command=self.insert_review)
+        self.review_button = tk.Button(middle_frame2,text="Update",command=self.insert_review)
         self.review_button.pack(pady=3)
 
         # Button to copy the link to clipboard
@@ -560,4 +561,3 @@ if __name__ == "__main__":
 
     #cd D:\RDMS\RDBMS_Project\
     #pyinstaller --onefile --noconsole D:\RDMS\RDBMS_Project\main.py
-
