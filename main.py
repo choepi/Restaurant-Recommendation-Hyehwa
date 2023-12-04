@@ -20,7 +20,7 @@ def connectDB(db_use):
     mydb = mysql.connector.connect(
     host = 'localhost',
     user = 'root',
-    password = '1083', # have to change
+    password = '2031mysq!', # have to change
     database = db_use
     )
     mycursor = mydb.cursor()
@@ -98,7 +98,7 @@ class NaverApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         self.geometry("800x600")
-        self.title("NaverFood")
+        self.title("Naverfood")
         # self.iconbitmap("C:/Users/Admin/OneDrive/바탕 화면/RDBMS_Project/naverfood.ico")
         
         # Create a container frame to hold the pages
@@ -157,12 +157,14 @@ class MainPage(tk.Frame):
         lower_frame.place(relx=0.5, rely=0.6,relwidth=1,relheight=0.4, anchor="n")
 
         # Widgets for the upper frame
-        self.title_label = tk.Label(upper_frame, text="Welcome to NaverFood!", font=("Arial", 16))
+        self.title_label = tk.Label(upper_frame, text="Welcome to Naverfood!", font=("Arial", 16))
         self.title_label.place(relx=0.5, rely=0.1, anchor="center")
 
         #lat lon search
-        self.search_label = tk.Label(upper_frame, text="Enter Lat Lon")
+        self.search_label = tk.Label(upper_frame, text="Eenter Lat Lon")
         self.search_label.place(relx=0.2, rely=0.2, anchor="center")
+        self.search_label2 = tk.Label(upper_frame, text="You can obtain the coordinates by clicking on the map at the bottom.")
+        self.search_label2.place(relx=0.15, rely=0.25)
         self.search_entry = tk.Entry(upper_frame)
         current_location = geocoder.ip('me').latlng
         current_location = ' '.join(map(str, current_location))
@@ -175,12 +177,12 @@ class MainPage(tk.Frame):
         self.message_text.pack_forget()
 
         self.filter_label = tk.Label(upper_frame, text="Filter by Category:")
-        self.filter_label.place(relx=0.5, rely=0.3, anchor="center")
+        self.filter_label.place(relx=0.5, rely=0.45, anchor="center")
 
         self.cat_num = 0
         # Create a new frame for the category radio buttons
         category_frame = tk.Frame(upper_frame)
-        category_frame.place(relx=0.5, rely=0.5, anchor="center")
+        category_frame.place(relx=0.5, rely=0.6, anchor="center")
         # Initialize the selected_category variable
         self.selected_category = tk.StringVar()
         self.selected_category.set('None')
@@ -226,7 +228,7 @@ class MainPage(tk.Frame):
 
 
         # English Option - using a checkbutton instead of radiobutton
-        self.english_label = tk.Label(upper_frame, text="English:")
+        self.english_label = tk.Label(upper_frame, text="Translation :")
         self.english_label.place(relx=0.2, rely=0.8, anchor="w")
 
         # Use StringVar for a Checkbutton
@@ -259,16 +261,22 @@ class MainPage(tk.Frame):
                 x = input_text.split(' ')
                 lat = float(x[0])
                 lon = float(x[1])
+                if (not lat < 90 and lat>-90) or (not lon < 180 and lon>-180):
+                    raise ValueError
+
+
                 message = f"selected:Lat: {lat}, Lon: {lon}"
 
             except ValueError:
                 self.go = 0
-                message = "Invalid input format. Please enter Lat and Lon separated by a space."
+                message = "Please enter Lat and Lon separated by a space."
+                if (not lat < 90 and lat>-90) or (not lon < 180 and lon>-180):
+                    message = "Please enter valid Lat and Lon."
         
         # Show the Text widget and insert the message
         self.message_text.config(state="normal")
         self.message_text.delete(1.0, tk.END)
-        self.message_text.place(relx=0.5, rely=0.7, anchor="center")
+        self.message_text.place(relx=0.5, rely=0.35, anchor="center")
         
         self.message_text.insert(tk.END, message)
         self.message_text.config(state="disabled")
@@ -296,7 +304,7 @@ class MainPage(tk.Frame):
                 if i == cleaned_str:
                     self.cat_num = self.categories.index(i)
             search_page.perform_search(lat,lon, self.cat_num, english)
-
+            
 
 dataframe_name = ['category_id', 'point_average']
 mycursor.execute("""SELECT c.category_id, avg(s.starRating) FROM score s
@@ -346,12 +354,13 @@ class SearchResult(tk.Frame):
         self.no_results_label = tk.Label(self, text="", fg="red")
         self.no_results_label.place(relx=0.5, rely=0.1, anchor="center")
 
-        self.search_label = tk.Label(self, text="These are the 5 closest Restaurants from your Search:", font=("Arial", 16))
+        self.search_label = tk.Label(self, text="These are the 15 closest Restaurants from your Search:", font=("Arial", 16))
         self.search_label.place(relx=0.5, rely=0.1, anchor="center")
 
 
         headers = ['Name', 'Category', 'Review Point', 'Rating']
         self.tree = ttk.Treeview(self, columns=headers, show='headings')
+        
         # Define the column headers
         for col in headers:
             self.tree.heading(col, text=col)
@@ -360,13 +369,13 @@ class SearchResult(tk.Frame):
         self.tree.place(relx=0.5, rely=0.4, anchor="center")
         self.tree.bind("<Double-Button-1>", self.select_result)
         self.selected_record = None
-
+        self.user_location = None
+    
     def perform_search(self, lat, lon, category, english): # question
         self.no_results_label.config(text="")
         self.tree.delete(*self.tree.get_children())
-        user_location = (float(lat), float(lon))
-
-        restaurant_list = calculator_distance(user_location)
+        self.user_location = (float(lat), float(lon))
+        restaurant_list = calculator_distance(self.user_location)
         restaurant=restaurant_list
         if not len(restaurant) == 0 :
             global sorted_data
@@ -404,7 +413,10 @@ class SearchResult(tk.Frame):
         # Switch to the Result and display the details of the selected result
         self.controller.show_page("Result") # question
         result_page = self.controller.pages["Result"]
-        result_page.display_details(selected_record)
+        lat = self.user_location[0]
+        lon = self.user_location[1]
+        result_page.display_details(selected_record,lat,lon)
+
 
 class Result(tk.Frame):
     def __init__(self, parent, controller):
@@ -445,19 +457,9 @@ class Result(tk.Frame):
         self.copy_button = tk.Button(middle_frame2, text="Copy Link to Restaurant", command=self.copy_to_clipboard)
         self.copy_button.pack(pady=10)
 
-        # Create a map centered around Seoul (or you can center it around the user's location)
-        self.map = folium.Map(location=[37.5665, 126.9780], zoom_start=10)
-
-       
+        # Create a map centered around Hyehwah (or you can center it around the user's location)
+        self.map = folium.Map(location=[37.5832621,127.0001972], zoom_start=10)
         
-        # Get current location and add a marker for it
-        current_location = geocoder.ip('me').latlng
-        if current_location:
-            folium.Marker(
-                location=current_location,
-                popup="You are here!",
-                icon=folium.Icon(color="blue")
-            ).add_to(self.map)
         
         # Save the map to an HTML file
         self.map_filepath = "map.html"
@@ -470,7 +472,7 @@ class Result(tk.Frame):
         self.exit_button = tk.Button(middle_frame2, text="Exit", command=self.controller.quit)
         self.exit_button.pack()
 
-        self.result_marker = folium.Marker([37.5665, 126.9780], popup="Your Restaurant", icon=folium.Icon(color="green"))
+        self.result_marker = folium.Marker([37.5665, 126.9780], popup="Selected Restaurant!", icon=folium.Icon(color="green"))
         self.result_marker.add_to(self.map)
         
     
@@ -490,9 +492,16 @@ class Result(tk.Frame):
             self.index2 = self.tree2.index(selected_iid)
             Result.display_details(self,selected_record)
 
-    def display_details(self, record):
+    def display_details(self,record,lat=37,lon=127 ):
          # Display the details of the selected result and show its location on the map.
         # Update the result label with the restaurant's name
+        current_location = [lat,lon]
+        if current_location:
+            folium.Marker(
+                location=current_location,
+                popup="selected Location!",
+                icon=folium.Icon(color="blue")
+            ).add_to(self.map)
         global real_record
         real_record = record.transpose()
         index = int(real_record.index[0])
@@ -534,7 +543,6 @@ class Result(tk.Frame):
 
         lat = float(real_record.loc[0,'Lat'])
         lon = float(real_record.loc[0,'Lon'])
-        loc = [lat,lon]
         self.result_marker.location = [lat, lon]
         self.result_marker.popup = folium.Popup(real_record.loc[0,'Name'])
         
